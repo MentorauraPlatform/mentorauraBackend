@@ -66,6 +66,11 @@ We follow NestJS modular architecture with high encapsulation:
 - **Controllers**: Handlers for HTTP routes only. Perform no direct database calls or heavy logic.
 - **Services**: Contain pure business logic and interact with `PrismaService`.
 - **DTOs (Data Transfer Objects)**: All input payloads **must** be validated using `class-validator` and `class-transformer`.
+- **API Documentation (Swagger)**: All new controllers and endpoints must be annotated with Swagger decorators:
+  - Add `@ApiTags('DomainName')` to the controller.
+  - Add `@ApiOperation({ summary: '...' })` and `@ApiResponse()` to each route method.
+  - Add `@ApiBearerAuth('access-token')` to routes requiring authentication.
+  - Add `@ApiProperty()` or `@ApiPropertyOptional()` to DTO class fields.
 - **Environment Variables**: Managed via `@nestjs/config`. Never hardcode secrets or connection strings.
 
 ---
