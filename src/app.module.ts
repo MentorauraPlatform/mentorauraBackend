@@ -1,7 +1,12 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+
+import appConfig from './config/app.config';
+import databaseConfig from './config/database.config';
+import jwtConfig from './config/jwt.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
+
 
 
 
@@ -85,8 +90,12 @@ import { PrismaModule } from './common/prisma/prisma.module';
 
 @Module({
   imports: [
-    // Global config — reads .env files
-    ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env'] }),
+    // Global config — reads .env files & custom config factories
+    ConfigModule.forRoot({
+      isGlobal: true,
+      envFilePath: ['.env'],
+      load: [appConfig, databaseConfig, jwtConfig],
+    }),
 
     // Database
     PrismaModule,
