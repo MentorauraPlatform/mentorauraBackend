@@ -12,7 +12,9 @@ export interface IPaymentProvider {
    * Initiate a new payment transaction.
    * Returns a provider-specific reference and redirect/USSD prompt.
    */
-  initiatePayment(payload: InitiatePaymentPayload): Promise<PaymentInitiationResult>;
+  initiatePayment(
+    payload: InitiatePaymentPayload,
+  ): Promise<PaymentInitiationResult>;
 
   /**
    * Verify the status of a previously initiated payment.
@@ -30,7 +32,7 @@ export interface IPaymentProvider {
 export interface InitiatePaymentPayload {
   amount: number;
   currency: string;
-  reference: string;         // internal idempotency key
+  reference: string; // internal idempotency key
   customerPhone?: string;
   customerEmail?: string;
   description: string;

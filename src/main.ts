@@ -4,7 +4,9 @@ import { AppModule } from './app.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule, { logger: ['error', 'warn', 'log'] });
+  const app = await NestFactory.create(AppModule, {
+    logger: ['error', 'warn', 'log'],
+  });
 
   // ── Global prefix & versioning ─────────────────────────────────────────────
   app.setGlobalPrefix('api');
@@ -19,9 +21,9 @@ async function bootstrap() {
   // ── Global validation pipe ─────────────────────────────────────────────────
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,       // strip unknown properties
+      whitelist: true, // strip unknown properties
       forbidNonWhitelisted: true,
-      transform: true,       // auto-transform payloads to DTO types
+      transform: true, // auto-transform payloads to DTO types
       transformOptions: { enableImplicitConversion: true },
     }),
   );
@@ -31,4 +33,4 @@ async function bootstrap() {
   logger.log(`🚀 Mentoraura API running on: http://localhost:${port}/api/v1`);
 }
 
-bootstrap();
+void bootstrap();

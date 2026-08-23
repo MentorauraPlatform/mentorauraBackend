@@ -7,9 +7,6 @@ import jwtConfig from './config/jwt.config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
-
-
-
 // ── Identity ────────────────────────────────────────────────────────────────
 import { AuthModule } from './modules/identity/auth/auth.module';
 import { UsersModule } from './modules/identity/users/users.module';
@@ -180,4 +177,3 @@ import { PrismaModule } from './common/prisma/prisma.module';
   providers: [AppService],
 })
 export class AppModule {}
-

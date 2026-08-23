@@ -13,15 +13,27 @@ import { Injectable } from '@nestjs/common';
 export class OrangeMoneyAdapter implements IPaymentProvider {
   readonly name = 'orange-money';
 
-  async initiatePayment(payload: InitiatePaymentPayload): Promise<PaymentInitiationResult> {
-    throw new Error('OrangeMoneyAdapter.initiatePayment() not yet implemented');
+  initiatePayment(
+    payload: InitiatePaymentPayload,
+  ): Promise<PaymentInitiationResult> {
+    return Promise.reject(
+      new Error(
+        `OrangeMoneyAdapter.initiatePayment() not yet implemented for ${payload.reference}`,
+      ),
+    );
   }
 
-  async verifyPayment(reference: string): Promise<PaymentVerificationResult> {
-    throw new Error('OrangeMoneyAdapter.verifyPayment() not yet implemented');
+  verifyPayment(reference: string): Promise<PaymentVerificationResult> {
+    return Promise.reject(
+      new Error(
+        `OrangeMoneyAdapter.verifyPayment() not yet implemented for ${reference}`,
+      ),
+    );
   }
 
   verifyWebhookSignature(payload: unknown, signature: string): boolean {
-    throw new Error('OrangeMoneyAdapter.verifyWebhookSignature() not yet implemented');
+    throw new Error(
+      `OrangeMoneyAdapter.verifyWebhookSignature() not yet implemented for ${signature} on ${JSON.stringify(payload)}`,
+    );
   }
 }
