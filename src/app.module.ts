@@ -77,10 +77,15 @@ import { BlogModule } from './modules/content/blog/blog.module';
 import { CareersModule } from './modules/content/careers/careers.module';
 import { ResourcesModule } from './modules/content/resources/resources.module';
 
+import { PrismaModule } from './common/prisma/prisma.module';
+
 @Module({
   imports: [
     // Global config — reads .env files
     ConfigModule.forRoot({ isGlobal: true, envFilePath: ['.env'] }),
+
+    // Database
+    PrismaModule,
 
     // Identity
     AuthModule,

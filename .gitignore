@@ -31,3 +31,10 @@ coverage/
 
 # Docker
 .docker/
+
+/generated/prisma
+.agents/
+.claude/
+.windsurf/
+skills-lock.json
+
