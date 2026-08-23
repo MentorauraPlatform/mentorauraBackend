@@ -1,5 +1,9 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+
+
 
 // ── Identity ────────────────────────────────────────────────────────────────
 import { AuthModule } from './modules/identity/auth/auth.module';
@@ -163,5 +167,8 @@ import { PrismaModule } from './common/prisma/prisma.module';
     CareersModule,
     ResourcesModule,
   ],
+  controllers: [AppController],
+  providers: [AppService],
 })
 export class AppModule {}
+
