@@ -114,7 +114,31 @@ erDiagram
 | `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | Record creation timestamp |
 | `updated_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | Record last updated timestamp |
 
-### 4.2 `mentor_profiles`
+### 4.2 `mentee_profiles`
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `UUID` | `PRIMARY KEY DEFAULT gen_random_uuid()` | Profile identifier |
+| `user_id` | `UUID` | `UNIQUE, NOT NULL, FK -> users(id) ON DELETE CASCADE` | Associated user |
+| `full_name` | `VARCHAR(255)` | `NOT NULL` | Mentee full display name |
+| `avatar_url` | `VARCHAR(512)` | `NULLABLE` | Profile picture URL |
+| `headline` | `VARCHAR(255)` | `NULLABLE` | Brief headline or current role |
+| `goals` | `TEXT` | `NULLABLE` | Mentee learning goals and expectations |
+| `interests` | `TEXT[]` | `NOT NULL DEFAULT '{}'` | Selected topic/skill interests for recommendations |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | Record creation timestamp |
+| `updated_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | Record update timestamp |
+
+### 4.3 `skills`
+| Column | Type | Constraints | Description |
+|---|---|---|---|
+| `id` | `UUID` | `PRIMARY KEY DEFAULT gen_random_uuid()` | Skill identifier |
+| `name` | `VARCHAR(255)` | `NOT NULL` | Skill name (e.g. TypeScript, React) |
+| `level` | `ENUM` | `NOT NULL DEFAULT 'BEGINNER'` | Skill level: `'BEGINNER'`, `'INTERMEDIATE'`, `'ADVANCED'`, `'EXPERT'` |
+| `mentee_profile_id` | `UUID` | `NULLABLE, FK -> mentee_profiles(id) ON DELETE CASCADE` | Associated mentee profile |
+| `mentor_profile_id` | `UUID` | `NULLABLE, FK -> mentor_profiles(id) ON DELETE CASCADE` | Associated mentor profile |
+| `created_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | Record creation timestamp |
+| `updated_at` | `TIMESTAMPTZ` | `NOT NULL DEFAULT CURRENT_TIMESTAMP` | Record update timestamp |
+
+### 4.4 `mentor_profiles`
 | Column | Type | Constraints | Description |
 |---|---|---|---|
 | `id` | `UUID` | `PRIMARY KEY DEFAULT gen_random_uuid()` | Profile identifier |
