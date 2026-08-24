@@ -110,6 +110,16 @@ npm run start:dev
 
 The API will be available at `http://localhost:4000/api/v1`.
 
+### API Documentation (Swagger)
+
+Interactive Swagger / OpenAPI 3.0 documentation is available when the dev server is running:
+
+👉 **`http://localhost:4000/docs`**
+
+- **Interactive UI**: Test endpoints directly in the browser with "Try it out".
+- **Authentication**: Use the **"Authorize"** button (top-right) to test JWT Bearer protected routes.
+- **OpenAPI JSON Spec**: Available at `http://localhost:4000/docs-json` for generating type-safe frontend API clients.
+
 ---
 
 ## Environment Variables
