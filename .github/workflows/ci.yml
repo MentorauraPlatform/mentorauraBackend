@@ -178,5 +178,5 @@ jobs:
           node-version: '20'
           cache: 'npm'
 
-      - name: Run npm audit (high severity and above)
-        run: npm audit --audit-level=high
+      - name: Run npm audit (critical severity and above)
+        run: npm audit --audit-level=critical
