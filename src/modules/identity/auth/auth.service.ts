@@ -167,6 +167,11 @@ export class AuthService {
         role: true,
         isActive: true,
         createdAt: true,
+        userSkills: {
+          include: {
+            skill: true,
+          },
+        },
         menteeProfile: {
           select: {
             id: true,
@@ -175,7 +180,6 @@ export class AuthService {
             headline: true,
             goals: true,
             interests: true,
-            skills: { select: { id: true, name: true, level: true } },
           },
         },
         mentorProfile: {
@@ -186,7 +190,6 @@ export class AuthService {
             company: true,
             bio: true,
             isVerified: true,
-            skills: { select: { id: true, name: true, level: true } },
           },
         },
       },
