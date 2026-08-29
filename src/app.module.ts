@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
+import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
 
 import appConfig from './config/app.config';
 import databaseConfig from './config/database.config';
@@ -95,6 +96,12 @@ import { PrismaModule } from './common/prisma/prisma.module';
       envFilePath: ['.env'],
       load: [appConfig, databaseConfig, jwtConfig],
     }),
+    ThrottlerModule.forRoot([
+      {
+        ttl: 60000,
+        limit: 100,
+      },
+    ]),
 
     // Database
     PrismaModule,
@@ -181,6 +188,10 @@ import { PrismaModule } from './common/prisma/prisma.module';
     {
       provide: APP_GUARD,
       useClass: JwtAuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })
