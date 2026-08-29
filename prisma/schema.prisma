@@ -3,7 +3,9 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum SkillLevel {
@@ -35,9 +37,12 @@ model User {
   id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email         String         @unique @db.VarChar(255)
   passwordHash  String         @map("password_hash") @db.VarChar(255)
-  role          String         @default("MENTEE") @db.VarChar(32)
-  isActive      Boolean        @default(true) @map("is_active")
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  isMentor                  Boolean        @default(false) @map("is_mentor")
+  isActive                  Boolean        @default(true) @map("is_active")
+  isEmailVerified           Boolean        @default(false) @map("is_email_verified")
+  emailVerificationToken    String?        @map("email_verification_token") @db.VarChar(255)
+  emailVerificationExpires  DateTime?      @map("email_verification_expires") @db.Timestamptz(6)
+  createdAt                 DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   menteeProfile MenteeProfile?
