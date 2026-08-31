@@ -8,9 +8,12 @@ import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { RegisterDto } from './dto/register.dto';
+import { RegisterDto, UserRole } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+
+import * as crypto from 'crypto';
+import { MailService } from '../../../common/services/mail.service';
 
 @Injectable()
 export class AuthService {
@@ -18,10 +21,11 @@ export class AuthService {
     private readonly prisma: PrismaService,
     private readonly jwtService: JwtService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   /**
-   * Register a new user and create an initial profile (Mentee/Mentor)
+   * Register a new user and create an initial profile (Mentee/Mentor) with email verification
    */
   async register(dto: RegisterDto) {
     const existingUser = await this.prisma.user.findUnique({
@@ -33,7 +37,15 @@ export class AuthService {
     }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    const role = dto.role ?? 'MENTEE';
+    const isMentor = dto.isMentor ?? dto.role === UserRole.MENTOR;
+
+    // Generate high-entropy 32-byte crypto verification token
+    const rawVerificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedVerificationToken = crypto
+      .createHash('sha256')
+      .update(rawVerificationToken)
+      .digest('hex');
+    const emailVerificationExpires = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours expiry
 
     // Transaction to create User and Profile(s) atomically
     const user = await this.prisma.$transaction(async (tx) => {
@@ -41,11 +53,14 @@ export class AuthService {
         data: {
           email: dto.email.toLowerCase(),
           passwordHash,
-          role,
+          isMentor,
+          isEmailVerified: false,
+          emailVerificationToken: hashedVerificationToken,
+          emailVerificationExpires,
         },
       });
 
-      // Every user gets a MenteeProfile by default
+      // Create default MenteeProfile for all users
       await tx.menteeProfile.create({
         data: {
           userId: newUser.id,
@@ -53,8 +68,8 @@ export class AuthService {
         },
       });
 
-      // If user registers as a MENTOR, also create their MentorProfile
-      if (String(role) === 'MENTOR') {
+      // If user is a mentor, also create MentorProfile
+      if (isMentor) {
         await tx.mentorProfile.create({
           data: {
             userId: newUser.id,
@@ -67,16 +82,122 @@ export class AuthService {
       return newUser;
     });
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    // Send verification email via Gmail SMTP
+    await this.mailService.sendVerificationEmail(
+      user.email,
+      dto.fullName,
+      rawVerificationToken,
+    );
+
+    const isUserMentor = Boolean(user.isMentor);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      isUserMentor,
+    );
 
     return {
-      message: 'Registration successful',
+      message:
+        'Registration successful! Please check your email to verify your account.',
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        isMentor: isUserMentor,
+        isEmailVerified: false,
       },
       tokens,
+    };
+  }
+
+  /**
+   * Verify email token and activate user account
+   */
+  async verifyEmail(token: string) {
+    if (!token) {
+      throw new UnauthorizedException('Verification token is required');
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(token).digest('hex');
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        emailVerificationToken: hashedToken,
+        emailVerificationExpires: { gt: new Date() },
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired verification token');
+    }
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        isEmailVerified: true,
+        emailVerificationToken: null,
+        emailVerificationExpires: null,
+      },
+    });
+
+    return {
+      message: 'Email address verified successfully!',
+    };
+  }
+
+  /**
+   * Resend email verification link
+   */
+  async resendVerificationEmail(email: string) {
+    if (!email) {
+      throw new UnauthorizedException('Email address is required');
+    }
+
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+      include: {
+        menteeProfile: { select: { fullName: true } },
+        mentorProfile: { select: { fullName: true } },
+      },
+    });
+
+    if (!user) {
+      // Return success message for privacy so user existence is not leaked
+      return {
+        message:
+          'If an account with that email exists, a verification link has been sent.',
+      };
+    }
+
+    if (user.isEmailVerified) {
+      return { message: 'This email address is already verified.' };
+    }
+
+    const rawVerificationToken = crypto.randomBytes(32).toString('hex');
+    const hashedVerificationToken = crypto
+      .createHash('sha256')
+      .update(rawVerificationToken)
+      .digest('hex');
+    const emailVerificationExpires = new Date(Date.now() + 10 * 60 * 1000);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        emailVerificationToken: hashedVerificationToken,
+        emailVerificationExpires,
+      },
+    });
+
+    const fullName =
+      user.menteeProfile?.fullName ?? user.mentorProfile?.fullName ?? 'User';
+
+    await this.mailService.sendVerificationEmail(
+      user.email,
+      fullName,
+      rawVerificationToken,
+    );
+
+    return {
+      message: 'A new verification email has been sent successfully.',
     };
   }
 
@@ -96,6 +217,12 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
+    if (!user.isEmailVerified) {
+      throw new UnauthorizedException(
+        'Please verify your email address before logging in. Check your inbox for the verification link.',
+      );
+    }
+
     const isPasswordValid = await bcrypt.compare(
       dto.password,
       user.passwordHash,
@@ -105,14 +232,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid email or password');
     }
 
-    const tokens = await this.generateTokens(user.id, user.email, user.role);
+    const isUserMentor = Boolean(user.isMentor);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      isUserMentor,
+    );
 
     return {
       message: 'Login successful',
       user: {
         id: user.id,
         email: user.email,
-        role: user.role,
+        isMentor: isUserMentor,
         fullName:
           user.menteeProfile?.fullName ?? user.mentorProfile?.fullName ?? '',
         avatarUrl: user.menteeProfile?.avatarUrl ?? null,
@@ -133,7 +265,7 @@ export class AuthService {
       const payload = await this.jwtService.verifyAsync<{
         sub: string;
         email: string;
-        role: string;
+        isMentor: boolean;
       }>(dto.refreshToken, { secret: refreshSecret });
 
       const user = await this.prisma.user.findUnique({
@@ -144,7 +276,12 @@ export class AuthService {
         throw new UnauthorizedException('User account inactive or not found');
       }
 
-      const tokens = await this.generateTokens(user.id, user.email, user.role);
+      const isUserMentor = Boolean(user.isMentor);
+      const tokens = await this.generateTokens(
+        user.id,
+        user.email,
+        isUserMentor,
+      );
 
       return {
         message: 'Token refreshed successfully',
@@ -164,7 +301,7 @@ export class AuthService {
       select: {
         id: true,
         email: true,
-        role: true,
+        isMentor: true,
         isActive: true,
         createdAt: true,
         userSkills: {
@@ -207,8 +344,12 @@ export class AuthService {
   /**
    * Generate Access Token and Refresh Token pair
    */
-  private async generateTokens(userId: string, email: string, role: string) {
-    const payload = { sub: userId, email, role };
+  private async generateTokens(
+    userId: string,
+    email: string,
+    isMentor: boolean,
+  ) {
+    const payload = { sub: userId, email, isMentor };
 
     const accessSecret =
       this.configService.get<string>('jwt.secret') ?? 'super-secret-key';
