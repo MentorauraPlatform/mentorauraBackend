@@ -3,9 +3,9 @@ generator client {
 }
 
 datasource db {
-<<<<<<< HEAD
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum UserRole {
@@ -13,11 +13,6 @@ enum UserRole {
   MENTOR
   ADMIN
   SUPER_ADMIN
-=======
-  provider  = "postgresql"
-  url       = env("DATABASE_URL")
-  directUrl = env("DIRECT_URL")
->>>>>>> origin/development
 }
 
 enum SkillLevel {

@@ -90,11 +90,7 @@ export class AuthService {
     );
 
     const isUserMentor = Boolean(user.isMentor);
-    const tokens = await this.generateTokens(
-      user.id,
-      user.email,
-      isUserMentor,
-    );
+    const tokens = await this.generateTokens(user.id, user.email, isUserMentor);
 
     return {
       message:
@@ -233,11 +229,7 @@ export class AuthService {
     }
 
     const isUserMentor = Boolean(user.isMentor);
-    const tokens = await this.generateTokens(
-      user.id,
-      user.email,
-      isUserMentor,
-    );
+    const tokens = await this.generateTokens(user.id, user.email, isUserMentor);
 
     return {
       message: 'Login successful',

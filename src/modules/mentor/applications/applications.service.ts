@@ -63,7 +63,7 @@ export class ApplicationsService {
           select: {
             id: true,
             email: true,
-            role: true,
+            isMentor: true,
             isActive: true,
             userSkills: {
               include: {
@@ -86,7 +86,7 @@ export class ApplicationsService {
           select: {
             id: true,
             email: true,
-            role: true,
+            isMentor: true,
             isActive: true,
             userSkills: {
               include: {
@@ -129,7 +129,7 @@ export class ApplicationsService {
           select: {
             id: true,
             email: true,
-            role: true,
+            isMentor: true,
             isActive: true,
             userSkills: {
               include: {
