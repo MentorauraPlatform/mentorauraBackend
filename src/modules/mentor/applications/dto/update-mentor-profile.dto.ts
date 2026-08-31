@@ -7,7 +7,10 @@ export class UpdateMentorProfileDto {
   @IsOptional()
   fullName?: string;
 
-  @ApiPropertyOptional({ example: 'Senior Software Engineer', description: 'Professional title' })
+  @ApiPropertyOptional({
+    example: 'Senior Software Engineer',
+    description: 'Professional title',
+  })
   @IsString()
   @IsOptional()
   title?: string;
@@ -17,12 +20,18 @@ export class UpdateMentorProfileDto {
   @IsOptional()
   company?: string;
 
-  @ApiPropertyOptional({ example: 'I help developers build scalable systems.', description: 'Professional bio' })
+  @ApiPropertyOptional({
+    example: 'I help developers build scalable systems.',
+    description: 'Professional bio',
+  })
   @IsString()
   @IsOptional()
   bio?: string;
 
-  @ApiPropertyOptional({ example: '10 years of experience in distributed systems.', description: 'Professional experience' })
+  @ApiPropertyOptional({
+    example: '10 years of experience in distributed systems.',
+    description: 'Professional experience',
+  })
   @IsString()
   @IsOptional()
   experience?: string;

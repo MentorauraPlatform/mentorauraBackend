@@ -15,16 +15,22 @@ import { SkillLevel } from '@prisma/client';
 
 type MentorPrismaClient = {
   mentorProfile: {
-    findUnique: <T = Record<string, unknown>>(args: unknown) => Promise<T | null>;
+    findUnique: <T = Record<string, unknown>>(
+      args: unknown,
+    ) => Promise<T | null>;
     create: <T = Record<string, unknown>>(args: unknown) => Promise<T>;
     update: <T = Record<string, unknown>>(args: unknown) => Promise<T>;
   };
   skill: {
-    findUnique: <T = Record<string, unknown>>(args: unknown) => Promise<T | null>;
+    findUnique: <T = Record<string, unknown>>(
+      args: unknown,
+    ) => Promise<T | null>;
     findMany: <T = Record<string, unknown>>(args?: unknown) => Promise<T[]>;
   };
   userSkill: {
-    findFirst: <T = Record<string, unknown>>(args: unknown) => Promise<T | null>;
+    findFirst: <T = Record<string, unknown>>(
+      args: unknown,
+    ) => Promise<T | null>;
     create: <T = Record<string, unknown>>(args: unknown) => Promise<T>;
     update: <T = Record<string, unknown>>(args: unknown) => Promise<T>;
     delete: <T = Record<string, unknown>>(args: unknown) => Promise<T>;
@@ -173,7 +179,7 @@ export class ApplicationsService {
     }
 
     // validate level
-    if (!Object.values(SkillLevel).includes(dto.level as SkillLevel)) {
+    if (!Object.values(SkillLevel).includes(dto.level)) {
       throw new BadRequestException('Invalid skill level');
     }
 
@@ -214,7 +220,7 @@ export class ApplicationsService {
     const updated = await this.prismaClient.userSkill.update({
       where: { id: userSkill.id },
       data: {
-        level: dto.level as SkillLevel,
+        level: dto.level,
       },
       include: {
         skill: true,

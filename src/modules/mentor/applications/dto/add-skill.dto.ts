@@ -8,7 +8,11 @@ export class AddSkillDto {
   @IsNotEmpty()
   skillId: string;
 
-  @ApiProperty({ enum: SkillLevel, example: 'ADVANCED', description: 'Proficiency level' })
+  @ApiProperty({
+    enum: SkillLevel,
+    example: 'ADVANCED',
+    description: 'Proficiency level',
+  })
   @IsEnum(SkillLevel, { message: 'Invalid skill level' })
   level: SkillLevel;
 }
