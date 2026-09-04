@@ -17,6 +17,7 @@ import {
 import { ApplicationsService } from './applications.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { Public } from '../../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -35,11 +36,11 @@ import { SubmitOnboardingDto } from './dto/submit-onboarding.dto';
 export class ApplicationsController {
   constructor(private readonly applicationsService: ApplicationsService) {}
 
+  @Public()
   @Get('skills')
   @ApiOperation({ summary: 'List all available skills' })
-  @ApiBearerAuth('access-token')
   @ApiResponse({ status: 200, description: 'Skills retrieved' })
-  async findAllSkills(@CurrentUser() _: CurrentUserPayload) {
+  async findAllSkills() {
     const skills = await this.applicationsService.getAllSkills();
     return { data: skills };
   }
