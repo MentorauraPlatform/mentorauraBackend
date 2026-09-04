@@ -269,7 +269,7 @@ export class ApplicationsService {
     const updated = await this.prismaClient.mentorProfile.update({
       where: { userId },
       data: {
-        availability: Object.assign({}, dto.availability ?? {}),
+        availability: dto.availability,
       },
     });
 
