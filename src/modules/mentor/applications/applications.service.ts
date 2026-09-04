@@ -3,6 +3,8 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
+  CacheKey,
+  CacheTTL,
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { CreateMentorApplicationDto } from './dto/create-mentor-application.dto';
@@ -307,6 +309,8 @@ export class ApplicationsService {
     return { data: updated, message: 'Onboarding submitted successfully' };
   }
 
+  @CacheKey('skills:all')
+  @CacheTTL(3600)
   async getAllSkills() {
     const skills = await this.prismaClient.skill.findMany({
       orderBy: { name: 'asc' },
