@@ -3,8 +3,6 @@ import {
   NotFoundException,
   ConflictException,
   BadRequestException,
-  CacheKey,
-  CacheTTL,
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { CreateMentorApplicationDto } from './dto/create-mentor-application.dto';
@@ -13,7 +11,7 @@ import { AddSkillDto } from './dto/add-skill.dto';
 import { UpdateSkillDto } from './dto/update-skill.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { SubmitOnboardingDto } from './dto/submit-onboarding.dto';
-import { SkillLevel } from '@prisma/client';
+import { Prisma, SkillLevel } from '@prisma/client';
 
 @Injectable()
 export class ApplicationsService {
@@ -243,7 +241,7 @@ export class ApplicationsService {
     const updated = await this.prisma.mentorProfile.update({
       where: { userId },
       data: {
-        availability: dto.availability,
+        availability: JSON.parse(JSON.stringify(dto.availability)),
       },
     });
 
@@ -281,8 +279,6 @@ export class ApplicationsService {
     return { data: updated, message: 'Onboarding submitted successfully' };
   }
 
-  @CacheKey('skills:all')
-  @CacheTTL(3600)
   async getAllSkills() {
     const skills = await this.prisma.skill.findMany({
       orderBy: { name: 'asc' },
