@@ -15,40 +15,12 @@ import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { SubmitOnboardingDto } from './dto/submit-onboarding.dto';
 import { SkillLevel } from '@prisma/client';
 
-type MentorPrismaClient = {
-  mentorProfile: {
-    findUnique: <T = Record<string, unknown>>(
-      args: unknown,
-    ) => Promise<T | null>;
-    create: <T = Record<string, unknown>>(args: unknown) => Promise<T>;
-    update: <T = Record<string, unknown>>(args: unknown) => Promise<T>;
-  };
-  skill: {
-    findUnique: <T = Record<string, unknown>>(
-      args: unknown,
-    ) => Promise<T | null>;
-    findMany: <T = Record<string, unknown>>(args?: unknown) => Promise<T[]>;
-  };
-  userSkill: {
-    findFirst: <T = Record<string, unknown>>(
-      args: unknown,
-    ) => Promise<T | null>;
-    create: <T = Record<string, unknown>>(args: unknown) => Promise<T>;
-    update: <T = Record<string, unknown>>(args: unknown) => Promise<T>;
-    delete: <T = Record<string, unknown>>(args: unknown) => Promise<T>;
-  };
-};
-
 @Injectable()
 export class ApplicationsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  private get prismaClient(): MentorPrismaClient {
-    return this.prisma as unknown as MentorPrismaClient;
-  }
-
   async createProfile(userId: string, dto: CreateMentorApplicationDto) {
-    const existing = await this.prismaClient.mentorProfile.findUnique({
+    const existing = await this.prisma.mentorProfile.findUnique({
       where: { userId },
     });
 
@@ -56,7 +28,7 @@ export class ApplicationsService {
       throw new ConflictException('Mentor profile already exists');
     }
 
-    const profile = await this.prismaClient.mentorProfile.create({
+    const profile = await this.prisma.mentorProfile.create({
       data: {
         userId,
         fullName: dto.fullName,
@@ -87,7 +59,7 @@ export class ApplicationsService {
   }
 
   async getMyProfile(userId: string) {
-    const profile = await this.prismaClient.mentorProfile.findUnique({
+    const profile = await this.prisma.mentorProfile.findUnique({
       where: { userId },
       include: {
         user: {
@@ -114,7 +86,7 @@ export class ApplicationsService {
   }
 
   async updateProfile(userId: string, dto: UpdateMentorProfileDto) {
-    const existing = await this.prismaClient.mentorProfile.findUnique({
+    const existing = await this.prisma.mentorProfile.findUnique({
       where: { userId },
     });
 
@@ -122,7 +94,7 @@ export class ApplicationsService {
       throw new NotFoundException('Mentor profile not found');
     }
 
-    const profile = await this.prismaClient.mentorProfile.update({
+    const profile = await this.prisma.mentorProfile.update({
       where: { userId },
       data: {
         fullName: dto.fullName,
@@ -153,7 +125,7 @@ export class ApplicationsService {
   }
 
   async addSkill(userId: string, dto: AddSkillDto) {
-    const profile = await this.prismaClient.mentorProfile.findUnique({
+    const profile = await this.prisma.mentorProfile.findUnique({
       where: { userId },
     });
 
@@ -161,7 +133,7 @@ export class ApplicationsService {
       throw new NotFoundException('Mentor profile not found');
     }
 
-    const skill = await this.prismaClient.skill.findUnique({
+    const skill = await this.prisma.skill.findUnique({
       where: { id: dto.skillId },
     });
 
@@ -169,7 +141,7 @@ export class ApplicationsService {
       throw new NotFoundException('Skill not found');
     }
 
-    const existing = await this.prismaClient.userSkill.findFirst({
+    const existing = await this.prisma.userSkill.findFirst({
       where: {
         userId,
         skillId: dto.skillId,
@@ -185,7 +157,7 @@ export class ApplicationsService {
       throw new BadRequestException('Invalid skill level');
     }
 
-    const userSkill = await this.prismaClient.userSkill.create({
+    const userSkill = await this.prisma.userSkill.create({
       data: {
         userId,
         skillId: dto.skillId,
@@ -200,7 +172,7 @@ export class ApplicationsService {
   }
 
   async updateSkill(userId: string, skillId: string, dto: UpdateSkillDto) {
-    const profile = await this.prismaClient.mentorProfile.findUnique({
+    const profile = await this.prisma.mentorProfile.findUnique({
       where: { userId },
     });
 
@@ -208,7 +180,7 @@ export class ApplicationsService {
       throw new NotFoundException('Mentor profile not found');
     }
 
-    const userSkill = await this.prismaClient.userSkill.findFirst({
+    const userSkill = await this.prisma.userSkill.findFirst({
       where: {
         userId,
         skillId,
@@ -219,7 +191,7 @@ export class ApplicationsService {
       throw new NotFoundException('Skill not found on profile');
     }
 
-    const updated = await this.prismaClient.userSkill.update({
+    const updated = await this.prisma.userSkill.update({
       where: { id: userSkill.id },
       data: {
         level: dto.level,
@@ -233,7 +205,7 @@ export class ApplicationsService {
   }
 
   async removeSkill(userId: string, skillId: string) {
-    const profile = await this.prismaClient.mentorProfile.findUnique({
+    const profile = await this.prisma.mentorProfile.findUnique({
       where: { userId },
     });
 
@@ -241,7 +213,7 @@ export class ApplicationsService {
       throw new NotFoundException('Mentor profile not found');
     }
 
-    const userSkill = await this.prismaClient.userSkill.findFirst({
+    const userSkill = await this.prisma.userSkill.findFirst({
       where: {
         userId,
         skillId,
@@ -252,7 +224,7 @@ export class ApplicationsService {
       throw new NotFoundException('Skill not found on profile');
     }
 
-    await this.prismaClient.userSkill.delete({
+    await this.prisma.userSkill.delete({
       where: { id: userSkill.id },
     });
 
@@ -260,7 +232,7 @@ export class ApplicationsService {
   }
 
   async updateAvailability(userId: string, dto: UpdateAvailabilityDto) {
-    const profile = await this.prismaClient.mentorProfile.findUnique({
+    const profile = await this.prisma.mentorProfile.findUnique({
       where: { userId },
     });
 
@@ -268,7 +240,7 @@ export class ApplicationsService {
       throw new NotFoundException('Mentor profile not found');
     }
 
-    const updated = await this.prismaClient.mentorProfile.update({
+    const updated = await this.prisma.mentorProfile.update({
       where: { userId },
       data: {
         availability: dto.availability,
@@ -279,7 +251,7 @@ export class ApplicationsService {
   }
 
   async submitOnboarding(userId: string, dto: SubmitOnboardingDto) {
-    const profile = await this.prismaClient.mentorProfile.findUnique({
+    const profile = await this.prisma.mentorProfile.findUnique({
       where: { userId },
     });
 
@@ -299,7 +271,7 @@ export class ApplicationsService {
       throw new BadRequestException('You must confirm before submitting');
     }
 
-    const updated = await this.prismaClient.mentorProfile.update({
+    const updated = await this.prisma.mentorProfile.update({
       where: { userId },
       data: {
         onboardingStatus: 'PENDING',
@@ -312,7 +284,7 @@ export class ApplicationsService {
   @CacheKey('skills:all')
   @CacheTTL(3600)
   async getAllSkills() {
-    const skills = await this.prismaClient.skill.findMany({
+    const skills = await this.prisma.skill.findMany({
       orderBy: { name: 'asc' },
       select: { id: true, name: true },
     });
