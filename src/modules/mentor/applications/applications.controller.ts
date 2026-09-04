@@ -18,6 +18,9 @@ import { ApplicationsService } from './applications.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
 import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
+import { RolesGuard } from '../../../common/guards/roles.guard';
+import { Roles } from '../../../common/decorators/roles.decorator';
+import { Role } from '../../../common/decorators/roles.decorator';
 import { CreateMentorApplicationDto } from './dto/create-mentor-application.dto';
 import { UpdateMentorProfileDto } from './dto/update-mentor-profile.dto';
 import { AddSkillDto } from './dto/add-skill.dto';
@@ -27,7 +30,8 @@ import { SubmitOnboardingDto } from './dto/submit-onboarding.dto';
 
 @ApiTags('Mentor Applications')
 @Controller({ path: 'mentor/applications', version: '1' })
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, RolesGuard)
+@Roles(Role.MENTOR)
 export class ApplicationsController {
   constructor(private readonly applicationsService: ApplicationsService) {}
 

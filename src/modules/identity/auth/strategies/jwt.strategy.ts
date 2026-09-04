@@ -26,10 +26,14 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     if (!payload.sub) {
       throw new UnauthorizedException('Invalid token payload');
     }
+
+    const role = payload.role ?? (payload.isMentor ? 'mentor' : 'mentee');
+
     return {
       userId: payload.sub,
       email: payload.email,
       isMentor: payload.isMentor ?? false,
+      role,
     };
   }
 }

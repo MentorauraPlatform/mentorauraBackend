@@ -341,7 +341,8 @@ export class AuthService {
     email: string,
     isMentor: boolean,
   ) {
-    const payload = { sub: userId, email, isMentor };
+    const role = isMentor ? 'mentor' : 'mentee';
+    const payload = { sub: userId, email, isMentor, role };
 
     const accessSecret =
       this.configService.get<string>('jwt.secret') ?? 'super-secret-key';
