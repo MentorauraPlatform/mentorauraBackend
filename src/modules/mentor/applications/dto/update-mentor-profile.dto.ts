@@ -1,10 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString } from 'class-validator';
+import { IsOptional, IsString, MaxLength, IsArray, ArrayMaxSize } from 'class-validator';
 
 export class UpdateMentorProfileDto {
   @ApiPropertyOptional({ example: 'Jane Doe', description: 'Full name' })
   @IsString()
   @IsOptional()
+  @MaxLength(100)
   fullName?: string;
 
   @ApiPropertyOptional({
@@ -13,11 +14,13 @@ export class UpdateMentorProfileDto {
   })
   @IsString()
   @IsOptional()
+  @MaxLength(300)
   title?: string;
 
   @ApiPropertyOptional({ example: 'Acme Corp', description: 'Company name' })
   @IsString()
   @IsOptional()
+  @MaxLength(100)
   company?: string;
 
   @ApiPropertyOptional({
@@ -26,6 +29,7 @@ export class UpdateMentorProfileDto {
   })
   @IsString()
   @IsOptional()
+  @MaxLength(1000)
   bio?: string;
 
   @ApiPropertyOptional({
@@ -34,6 +38,7 @@ export class UpdateMentorProfileDto {
   })
   @IsString()
   @IsOptional()
+  @MaxLength(5000)
   experience?: string;
 
   @ApiPropertyOptional({
@@ -41,6 +46,10 @@ export class UpdateMentorProfileDto {
     description: 'Areas of expertise',
     type: [String],
   })
+  @IsArray()
+  @IsString({ each: true })
   @IsOptional()
+  @MaxLength(100, { each: true })
+  @ArrayMaxSize(20)
   areasOfExpertise?: string[];
 }

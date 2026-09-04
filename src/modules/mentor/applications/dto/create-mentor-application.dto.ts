@@ -5,6 +5,8 @@ import {
   IsNotEmpty,
   IsOptional,
   IsString,
+  MaxLength,
+  ArrayMaxSize,
 } from 'class-validator';
 
 export class CreateMentorApplicationDto {
@@ -14,6 +16,7 @@ export class CreateMentorApplicationDto {
   })
   @IsString()
   @IsNotEmpty({ message: 'Full name is required' })
+  @MaxLength(100)
   fullName: string;
 
   @ApiProperty({
@@ -22,11 +25,13 @@ export class CreateMentorApplicationDto {
   })
   @IsString()
   @IsNotEmpty({ message: 'Title is required' })
+  @MaxLength(300)
   title: string;
 
   @ApiPropertyOptional({ example: 'Acme Corp', description: 'Company name' })
   @IsString()
   @IsOptional()
+  @MaxLength(100)
   company?: string;
 
   @ApiPropertyOptional({
@@ -35,6 +40,7 @@ export class CreateMentorApplicationDto {
   })
   @IsString()
   @IsOptional()
+  @MaxLength(1000)
   bio?: string;
 
   @ApiPropertyOptional({
@@ -43,6 +49,7 @@ export class CreateMentorApplicationDto {
   })
   @IsString()
   @IsOptional()
+  @MaxLength(5000)
   experience?: string;
 
   @ApiPropertyOptional({
@@ -53,5 +60,7 @@ export class CreateMentorApplicationDto {
   @IsArray()
   @IsString({ each: true })
   @IsOptional()
+  @MaxLength(100, { each: true })
+  @ArrayMaxSize(20)
   areasOfExpertise?: string[];
 }
