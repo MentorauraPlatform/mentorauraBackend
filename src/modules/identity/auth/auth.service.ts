@@ -90,11 +90,7 @@ export class AuthService {
     );
 
     const isUserMentor = Boolean(user.isMentor);
-    const tokens = await this.generateTokens(
-      user.id,
-      user.email,
-      isUserMentor,
-    );
+    const tokens = await this.generateTokens(user.id, user.email, isUserMentor);
 
     return {
       message:
@@ -233,11 +229,7 @@ export class AuthService {
     }
 
     const isUserMentor = Boolean(user.isMentor);
-    const tokens = await this.generateTokens(
-      user.id,
-      user.email,
-      isUserMentor,
-    );
+    const tokens = await this.generateTokens(user.id, user.email, isUserMentor);
 
     return {
       message: 'Login successful',
@@ -304,6 +296,11 @@ export class AuthService {
         isMentor: true,
         isActive: true,
         createdAt: true,
+        userSkills: {
+          include: {
+            skill: true,
+          },
+        },
         menteeProfile: {
           select: {
             id: true,
@@ -312,7 +309,6 @@ export class AuthService {
             headline: true,
             goals: true,
             interests: true,
-            skills: { select: { id: true, name: true, level: true } },
           },
         },
         mentorProfile: {
@@ -323,7 +319,6 @@ export class AuthService {
             company: true,
             bio: true,
             isVerified: true,
-            skills: { select: { id: true, name: true, level: true } },
           },
         },
       },
@@ -346,7 +341,8 @@ export class AuthService {
     email: string,
     isMentor: boolean,
   ) {
-    const payload = { sub: userId, email, isMentor };
+    const role = isMentor ? 'mentor' : 'mentee';
+    const payload = { sub: userId, email, isMentor, role };
 
     const accessSecret =
       this.configService.get<string>('jwt.secret') ?? 'super-secret-key';
