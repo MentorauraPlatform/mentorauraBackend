@@ -1,14 +1,12 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsArray,
-  IsBoolean,
   IsNotEmpty,
   IsOptional,
   IsString,
   MaxLength,
   ArrayMaxSize,
 } from 'class-validator';
-
 export class CreateMentorApplicationDto {
   @ApiProperty({
     example: 'Jane Doe',

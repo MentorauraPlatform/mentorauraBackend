@@ -1,5 +1,11 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, MaxLength, IsArray, ArrayMaxSize } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  MaxLength,
+  IsArray,
+  ArrayMaxSize,
+} from 'class-validator';
 
 export class UpdateMentorProfileDto {
   @ApiPropertyOptional({ example: 'Jane Doe', description: 'Full name' })

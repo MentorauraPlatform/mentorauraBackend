@@ -29,11 +29,18 @@ enum OnboardingStatus {
 }
 
 enum MentorshipStatus {
-  PENDING
+  INTRO
   ACTIVE
   PAUSED
   COMPLETED
   CANCELLED
+}
+
+enum MentorshipApplicationStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  WITHDRAWN
 }
 
 enum SessionStatus {
@@ -106,6 +113,7 @@ model User {
   payments      Payment[]
   reviews       Review[]
   sessions      Session[]      @relation("MenteeSessions")
+  applications  MentorshipApplication[] @relation("MenteeApplications")
 
   @@index([email], map: "idx_users_email")
   @@map("users")
@@ -148,6 +156,7 @@ model MentorProfile {
   plans       Plan[]
   reviews     Review[]     @relation("MentorReviews")
   sessions    Session[]    @relation("MentorSessions")
+  applications MentorshipApplication[] @relation("MentorApplications")
 
   @@index([userId], map: "idx_mentor_profiles_user_id")
   @@map("mentor_profiles")
@@ -163,6 +172,7 @@ model Plan {
   isActive    Boolean       @default(true) @map("is_active")
   createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   mentorships Mentorship[]
+  applications MentorshipApplication[] @relation("PlanApplications")
   mentor      MentorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([mentorId], map: "idx_plans_mentor_id")
@@ -174,7 +184,7 @@ model Mentorship {
   menteeId  String        @map("mentee_id") @db.Uuid
   mentorId  String        @map("mentor_id") @db.Uuid
   planId    String        @map("plan_id") @db.Uuid
-  status    String        @default("PENDING") @db.VarChar(32)
+  status    String        @default("INTRO") @db.VarChar(32)
   startedAt DateTime?     @map("started_at") @db.Timestamptz(6)
   endedAt   DateTime?     @map("ended_at") @db.Timestamptz(6)
   createdAt DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
@@ -188,6 +198,25 @@ model Mentorship {
   @@index([menteeId], map: "idx_mentorships_mentee")
   @@index([mentorId], map: "idx_mentorships_mentor")
   @@map("mentorships")
+}
+
+model MentorshipApplication {
+  id        String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  menteeId  String                     @map("mentee_id") @db.Uuid
+  mentorId  String                     @map("mentor_id") @db.Uuid
+  planId    String                     @map("plan_id") @db.Uuid
+  message   String?                     @db.Text
+  status    MentorshipApplicationStatus @default(PENDING)
+  createdAt DateTime                   @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  mentee User          @relation("MenteeApplications", fields: [menteeId], references: [id], onUpdate: NoAction)
+  mentor MentorProfile @relation("MentorApplications", fields: [mentorId], references: [id], onUpdate: NoAction)
+  plan   Plan          @relation("PlanApplications", fields: [planId], references: [id], onUpdate: NoAction)
+
+  @@index([menteeId], map: "idx_applications_mentee")
+  @@index([mentorId], map: "idx_applications_mentor")
+  @@index([planId], map: "idx_applications_plan")
+  @@map("mentorship_applications")
 }
 
 model Session {

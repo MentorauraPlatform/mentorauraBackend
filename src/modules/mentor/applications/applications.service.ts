@@ -238,10 +238,18 @@ export class ApplicationsService {
       throw new NotFoundException('Mentor profile not found');
     }
 
+    const availabilityValue:
+      Prisma.InputJsonValue | typeof Prisma.JsonNull | undefined =
+      dto.availability === undefined
+        ? undefined
+        : dto.availability === null
+          ? Prisma.JsonNull
+          : (JSON.parse(JSON.stringify(dto.availability)) as Prisma.InputJsonValue);
+
     const updated = await this.prisma.mentorProfile.update({
       where: { userId },
       data: {
-        availability: JSON.parse(JSON.stringify(dto.availability)),
+        availability: availabilityValue,
       },
     });
 

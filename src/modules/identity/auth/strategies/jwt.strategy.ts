@@ -10,6 +10,11 @@ export interface JwtPayload {
   role?: string;
 }
 
+type RequestLike = { cookies?: Record<string, unknown> } & Record<
+  string,
+  unknown
+>;
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(configService: ConfigService) {
@@ -18,14 +23,21 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const bearerExtractor = ExtractJwt.fromAuthHeaderAsBearerToken();
 
     super({
-      jwtFromRequest: (req) => {
-        const bearerToken = bearerExtractor(req);
+      jwtFromRequest: (req: RequestLike) => {
+        const bearerToken = bearerExtractor(req as any);
         if (bearerToken) {
           return bearerToken;
         }
 
-        if (req?.cookies?.access_token) {
-          return req.cookies.access_token;
+        // guard cookies access with typed request
+        if (
+          req &&
+          typeof req === 'object' &&
+          req.cookies &&
+          typeof req.cookies === 'object'
+        ) {
+          const token = req.cookies['access_token'];
+          if (typeof token === 'string') return token;
         }
 
         return null;
