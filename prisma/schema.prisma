@@ -96,6 +96,9 @@ model User {
   isEmailVerified           Boolean        @default(false) @map("is_email_verified")
   emailVerificationToken    String?        @map("email_verification_token") @db.VarChar(255)
   emailVerificationExpires  DateTime?      @map("email_verification_expires") @db.Timestamptz(6)
+  passwordResetOtpHash      String?        @map("password_reset_otp_hash") @db.VarChar(255)
+  passwordResetOtpExpires   DateTime?      @map("password_reset_otp_expires") @db.Timestamptz(6)
+  passwordResetOtpAttempts  Int            @default(0) @map("password_reset_otp_attempts")
   createdAt                 DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
@@ -129,41 +132,66 @@ model MenteeProfile {
 }
 
 model MentorProfile {
-  id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId            String       @unique @map("user_id") @db.Uuid
-  fullName          String       @map("full_name") @db.VarChar(255)
-  title             String       @db.VarChar(255)
-  company           String?      @db.VarChar(255)
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String           @unique @map("user_id") @db.Uuid
+  fullName          String           @map("full_name") @db.VarChar(255)
+  slug              String?          @unique @db.VarChar(255)
+  title             String           @db.VarChar(255)
+  company           String?          @db.VarChar(255)
   bio               String?
   experience        String?
-  areasOfExpertise  String[]     @default([]) @map("areas_of_expertise")
+  areasOfExpertise  String[]         @default([]) @map("areas_of_expertise")
   availability      Json?
-  onboardingStatus  String       @default("INCOMPLETE") @map("onboarding_status")
-  isVerified        Boolean      @default(false) @map("is_verified")
-  createdAt         DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt         DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  onboardingStatus  String           @default("INCOMPLETE") @map("onboarding_status")
+  isVerified        Boolean          @default(false) @map("is_verified")
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  mentorships Mentorship[] @relation("MentorMentorships")
-  plans       Plan[]
-  reviews     Review[]     @relation("MentorReviews")
-  sessions    Session[]    @relation("MentorSessions")
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mentorships      Mentorship[]     @relation("MentorMentorships")
+  plans            Plan[]
+  reviews          Review[]         @relation("MentorReviews")
+  sessions         Session[]        @relation("MentorSessions")
+  mentorCategories MentorCategory[]
 
   @@index([userId], map: "idx_mentor_profiles_user_id")
   @@map("mentor_profiles")
 }
 
+model Category {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String           @unique @db.VarChar(255)
+  slug             String           @unique @db.VarChar(255)
+  description      String?          @db.Text
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  mentorCategories MentorCategory[]
+
+  @@map("categories")
+}
+
+model MentorCategory {
+  mentorProfileId String        @map("mentor_profile_id") @db.Uuid
+  categoryId      String        @map("category_id") @db.Uuid
+  mentorProfile   MentorProfile @relation(fields: [mentorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category        Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([mentorProfileId, categoryId])
+  @@map("mentor_categories")
+}
+
 model Plan {
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  mentorId    String        @map("mentor_id") @db.Uuid
-  title       String        @db.VarChar(255)
-  description String?
-  priceAmount BigInt        @map("price_amount")
-  currency    String        @default("XAF") @db.VarChar(10)
-  isActive    Boolean       @default(true) @map("is_active")
-  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  mentorships Mentorship[]
-  mentor      MentorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mentorId         String        @map("mentor_id") @db.Uuid
+  title            String        @db.VarChar(255)
+  description      String?
+  priceAmount      BigInt        @map("price_amount")
+  currency         String        @default("XAF") @db.VarChar(10)
+  sessionsPerMonth Int           @default(1) @map("sessions_per_month")
+  isActive         Boolean       @default(true) @map("is_active")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  mentorships      Mentorship[]
+  mentor           MentorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([mentorId], map: "idx_plans_mentor_id")
   @@map("plans")
