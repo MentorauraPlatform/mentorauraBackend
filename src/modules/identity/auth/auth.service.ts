@@ -329,7 +329,169 @@ export class AuthService {
     }
 
     return {
-      data: user,
+      data: {
+        ...user,
+        role: user.isMentor ? 'mentor' : 'mentee',
+      },
+    };
+  }
+
+  /**
+   * Request 6-digit OTP for password reset
+   */
+  async requestPasswordResetOtp(email: string) {
+    if (!email || typeof email !== 'string') {
+      return {
+        message:
+          'If an account with that email exists, a 6-digit verification code has been sent.',
+      };
+    }
+
+    const cleanEmail = email.trim().toLowerCase();
+    const user = await this.prisma.user.findUnique({
+      where: { email: cleanEmail },
+      include: {
+        menteeProfile: { select: { fullName: true } },
+        mentorProfile: { select: { fullName: true } },
+      },
+    });
+
+    if (!user || !user.isActive) {
+      return {
+        message:
+          'If an account with that email exists, a 6-digit verification code has been sent.',
+      };
+    }
+
+    const rawOtp = crypto.randomInt(100000, 1000000).toString();
+    const otpHash = crypto.createHash('sha256').update(rawOtp).digest('hex');
+    const otpExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 mins
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordResetOtpHash: otpHash,
+        passwordResetOtpExpires: otpExpires,
+        passwordResetOtpAttempts: 0,
+      },
+    });
+
+    const fullName =
+      user.menteeProfile?.fullName ?? user.mentorProfile?.fullName ?? 'User';
+
+    await this.mailService.sendPasswordResetOtpEmail(
+      user.email,
+      fullName,
+      rawOtp,
+    );
+
+    return {
+      message:
+        'A 6-digit verification code has been sent to your email address.',
+    };
+  }
+
+  /**
+   * Verify 6-digit OTP code validity
+   */
+  async verifyPasswordResetOtp(email: string, otp: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or verification code');
+    }
+
+    if (user.passwordResetOtpAttempts >= 5) {
+      throw new UnauthorizedException(
+        'Maximum verification attempts exceeded. Please request a new code.',
+      );
+    }
+
+    if (
+      !user.passwordResetOtpHash ||
+      !user.passwordResetOtpExpires ||
+      user.passwordResetOtpExpires < new Date()
+    ) {
+      throw new UnauthorizedException(
+        'Verification code has expired. Please request a new code.',
+      );
+    }
+
+    const computedHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+    if (computedHash !== user.passwordResetOtpHash) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetOtpAttempts: { increment: 1 },
+        },
+      });
+      throw new UnauthorizedException('Invalid 6-digit verification code');
+    }
+
+    return {
+      message: 'Verification code confirmed.',
+      valid: true,
+    };
+  }
+
+  /**
+   * Reset user password using verified 6-digit OTP code
+   */
+  async resetPasswordWithOtp(email: string, otp: string, newPassword: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { email: email.toLowerCase() },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid email or verification code');
+    }
+
+    if (user.passwordResetOtpAttempts >= 5) {
+      throw new UnauthorizedException(
+        'Maximum verification attempts exceeded. Please request a new code.',
+      );
+    }
+
+    if (
+      !user.passwordResetOtpHash ||
+      !user.passwordResetOtpExpires ||
+      user.passwordResetOtpExpires < new Date()
+    ) {
+      throw new UnauthorizedException(
+        'Verification code has expired. Please request a new code.',
+      );
+    }
+
+    const computedHash = crypto.createHash('sha256').update(otp).digest('hex');
+
+    if (computedHash !== user.passwordResetOtpHash) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: {
+          passwordResetOtpAttempts: { increment: 1 },
+        },
+      });
+      throw new UnauthorizedException('Invalid 6-digit verification code');
+    }
+
+    const newPasswordHash = await bcrypt.hash(newPassword, 12);
+
+    await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash: newPasswordHash,
+        passwordResetOtpHash: null,
+        passwordResetOtpExpires: null,
+        passwordResetOtpAttempts: 0,
+      },
+    });
+
+    return {
+      message:
+        'Your password has been reset successfully! You can now log in with your new password.',
     };
   }
 
