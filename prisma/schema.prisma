@@ -112,22 +112,27 @@ model User {
 }
 
 model MenteeProfile {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @unique @map("user_id") @db.Uuid
-  fullName  String   @map("full_name") @db.VarChar(255)
-  avatarUrl String?  @map("avatar_url") @db.VarChar(512)
-  headline  String?  @db.VarChar(255)
-  goals     String?  @db.Text
-  interests String[] @default([])
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  fullName            String   @map("full_name") @db.VarChar(255)
+  avatarUrl           String?  @map("avatar_url") @db.VarChar(512)
+  headline            String?  @db.VarChar(255)
+  goals               String[] @default([])
+  interests           String[] @default([])
+  currentRole         String?  @map("current_role") @db.VarChar(255)
+  educationBackground String?  @map("education_background") @db.Text
+  yearsOfExperience   Int?     @map("years_of_experience")
+  experienceLevel     String?  @map("experience_level") @db.VarChar(32)
+  availability        Json?
+  onboardingCompleted Boolean  @default(false) @map("onboarding_completed")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId], map: "idx_mentee_profiles_user_id")
   @@map("mentee_profiles")
 }
-
 model MentorProfile {
   id                String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   userId            String       @unique @map("user_id") @db.Uuid
