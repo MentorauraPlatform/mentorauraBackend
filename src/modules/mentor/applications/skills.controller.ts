@@ -7,8 +7,7 @@ import {
 } from '@nestjs/swagger';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
-import { CurrentUser } from '../../../common/decorators/current-user.decorator';
-import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { Public } from '../../../common/decorators/public.decorator';
 
 @ApiTags('Skills')
 @Controller({ path: 'skills', version: '1' })
@@ -16,13 +15,12 @@ import type { CurrentUserPayload } from '../../../common/decorators/current-user
 export class SkillsController {
   constructor(private readonly prisma: PrismaService) {}
 
+  @Public()
   @Get()
   @ApiOperation({ summary: 'List all available skills' })
   @ApiBearerAuth('access-token')
   @ApiResponse({ status: 200, description: 'Skills retrieved' })
-  async findAll(@CurrentUser() _user: CurrentUserPayload) {
-    void _user;
-
+  async findAll() {
     const prisma = this.prisma as PrismaService & {
       skill: {
         findMany: (args: {
