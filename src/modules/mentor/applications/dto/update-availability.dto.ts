@@ -1,17 +1,46 @@
 import { ApiProperty } from '@nestjs/swagger';
-import { IsEnum, IsString, Matches, IsArray, ValidateNested, IsNotEmpty } from 'class-validator';
+import {
+  IsEnum,
+  IsString,
+  Matches,
+  IsArray,
+  ValidateNested,
+  IsNotEmpty,
+} from 'class-validator';
 
 export class TimeSlotDto {
-  @ApiProperty({ enum: ['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'] })
-  @IsEnum(['MONDAY','TUESDAY','WEDNESDAY','THURSDAY','FRIDAY','SATURDAY','SUNDAY'])
+  @ApiProperty({
+    enum: [
+      'MONDAY',
+      'TUESDAY',
+      'WEDNESDAY',
+      'THURSDAY',
+      'FRIDAY',
+      'SATURDAY',
+      'SUNDAY',
+    ],
+  })
+  @IsEnum([
+    'MONDAY',
+    'TUESDAY',
+    'WEDNESDAY',
+    'THURSDAY',
+    'FRIDAY',
+    'SATURDAY',
+    'SUNDAY',
+  ])
   day: string;
 
   @ApiProperty({ example: '09:00', description: 'HH:MM start time' })
-  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Invalid time format HH:MM' })
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {
+    message: 'Invalid time format HH:MM',
+  })
   startTime: string;
 
   @ApiProperty({ example: '17:00', description: 'HH:MM end time' })
-  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, { message: 'Invalid time format HH:MM' })
+  @Matches(/^([01]\d|2[0-3]):[0-5]\d$/, {
+    message: 'Invalid time format HH:MM',
+  })
   endTime: string;
 }
 

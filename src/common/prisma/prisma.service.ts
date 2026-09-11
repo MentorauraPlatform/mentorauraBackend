@@ -10,14 +10,24 @@ export class PrismaService
     super({
       datasources: {
         db: {
-          url: process.env.DATABASE_URL,
+          url:
+            process.env.DATABASE_URL ||
+            process.env.DIRECT_URL ||
+            'postgresql://postgres.opopvxzurkuqilzctser:mentoraurapasswor@aws-0-eu-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1',
         },
       },
     });
   }
 
   async onModuleInit() {
-    await this.$connect();
+    try {
+      await this.$connect();
+    } catch (err) {
+      console.warn(
+        'Prisma initial $connect failed, lazy connecting on first query:',
+        err,
+      );
+    }
   }
 
   async onModuleDestroy() {
