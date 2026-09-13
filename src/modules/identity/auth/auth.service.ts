@@ -249,6 +249,9 @@ export class AuthService {
    * Refresh JWT access token using a valid refresh token
    */
   async refreshToken(dto: RefreshTokenDto) {
+    if (!dto?.refreshToken) {
+      throw new UnauthorizedException('Refresh token is required');
+    }
     try {
       const refreshSecret =
         this.configService.get<string>('jwt.refreshSecret') ??

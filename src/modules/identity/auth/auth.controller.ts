@@ -83,10 +83,12 @@ export class AuthController {
     const result = await this.authService.login(dto);
 
     const isProd = process.env.NODE_ENV === 'production';
+    const sameSiteMode = isProd ? 'none' : 'lax';
+
     res.cookie('access_token', result.tokens.accessToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'lax',
+      sameSite: sameSiteMode,
       path: '/',
       maxAge: 15 * 60 * 1000,
     });
@@ -94,8 +96,8 @@ export class AuthController {
     res.cookie('refresh_token', result.tokens.refreshToken, {
       httpOnly: true,
       secure: isProd,
-      sameSite: 'lax',
-      path: '/api/v1/auth/refresh',
+      sameSite: sameSiteMode,
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -121,19 +123,22 @@ export class AuthController {
 
     const result = await this.authService.refreshToken({ refreshToken: token });
 
+    const isProd = process.env.NODE_ENV === 'production';
+    const sameSiteMode = isProd ? 'none' : 'lax';
+
     res.cookie('access_token', result.tokens.accessToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
+      secure: isProd,
+      sameSite: sameSiteMode,
       path: '/',
       maxAge: 15 * 60 * 1000,
     });
 
     res.cookie('refresh_token', result.tokens.refreshToken, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-      path: '/api/v1/auth/refresh',
+      secure: isProd,
+      sameSite: sameSiteMode,
+      path: '/',
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
