@@ -1,9 +1,10 @@
-﻿import {
+import {
   Injectable,
   NotFoundException,
   ConflictException,
   BadRequestException,
 } from '@nestjs/common';
+import { SkillLevel } from '@prisma/client';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { CreateMenteeProfileDto } from './dto/create-mentee-profile.dto';
 import { UpdateMenteeProfileDto } from './dto/update-mentee-profile.dto';
@@ -31,7 +32,7 @@ export class OnboardingService {
 
     const profile = await this.prisma.menteeProfile.create({
       data: { userId, fullName: dto.fullName, avatarUrl: dto.avatarUrl, headline: dto.headline },
-      include: { skills: true },
+      include: { user: { include: { userSkills: { include: { skill: true } } } } },
     });
     return { data: profile };
   }
@@ -39,7 +40,7 @@ export class OnboardingService {
   async getMyProfile(userId: string) {
     const profile = await this.prisma.menteeProfile.findUnique({
       where: { userId },
-      include: { skills: true },
+      include: { user: { include: { userSkills: { include: { skill: true } } } } },
     });
     if (!profile) throw new NotFoundException('Mentee profile not found');
     return { data: profile };
@@ -50,7 +51,7 @@ export class OnboardingService {
     const profile = await this.prisma.menteeProfile.update({
       where: { userId },
       data: dto,
-      include: { skills: true },
+      include: { user: { include: { userSkills: { include: { skill: true } } } } },
     });
     return { data: profile };
   }
@@ -92,43 +93,59 @@ export class OnboardingService {
   }
 
   async addSkill(userId: string, dto: AddSkillDto) {
-    const profile = await this.getProfileOrThrow(userId);
+    await this.getProfileOrThrow(userId);
 
-    const existing = await this.prisma.skill.findFirst({
-      where: { menteeProfileId: profile.id, name: dto.name },
+    let skill = await this.prisma.skill.findUnique({
+      where: { name: dto.name },
+    });
+
+    if (!skill) {
+      skill = await this.prisma.skill.create({
+        data: { name: dto.name },
+      });
+    }
+
+    const existing = await this.prisma.userSkill.findFirst({
+      where: { userId, skillId: skill.id },
     });
     if (existing) throw new ConflictException('Skill already added');
 
-    const skill = await this.prisma.skill.create({
-      data: { name: dto.name, level: dto.level, menteeProfileId: profile.id },
+    const userSkill = await this.prisma.userSkill.create({
+      data: {
+        userId,
+        skillId: skill.id,
+        level: dto.level || SkillLevel.BEGINNER,
+      },
+      include: { skill: true },
     });
-    return { data: skill };
+    return { data: userSkill };
   }
 
   async updateSkill(userId: string, skillId: string, dto: UpdateSkillDto) {
-    const profile = await this.getProfileOrThrow(userId);
+    await this.getProfileOrThrow(userId);
 
-    const skill = await this.prisma.skill.findFirst({
-      where: { id: skillId, menteeProfileId: profile.id },
+    const userSkill = await this.prisma.userSkill.findFirst({
+      where: { userId, skillId },
     });
-    if (!skill) throw new NotFoundException('Skill not found on profile');
+    if (!userSkill) throw new NotFoundException('Skill not found on profile');
 
-    const updated = await this.prisma.skill.update({
-      where: { id: skillId },
+    const updated = await this.prisma.userSkill.update({
+      where: { id: userSkill.id },
       data: { level: dto.level },
+      include: { skill: true },
     });
     return { data: updated };
   }
 
   async removeSkill(userId: string, skillId: string) {
-    const profile = await this.getProfileOrThrow(userId);
+    await this.getProfileOrThrow(userId);
 
-    const skill = await this.prisma.skill.findFirst({
-      where: { id: skillId, menteeProfileId: profile.id },
+    const userSkill = await this.prisma.userSkill.findFirst({
+      where: { userId, skillId },
     });
-    if (!skill) throw new NotFoundException('Skill not found on profile');
+    if (!userSkill) throw new NotFoundException('Skill not found on profile');
 
-    await this.prisma.skill.delete({ where: { id: skillId } });
+    await this.prisma.userSkill.delete({ where: { id: userSkill.id } });
     return { message: 'Skill removed successfully' };
   }
 
