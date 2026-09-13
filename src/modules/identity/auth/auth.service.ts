@@ -379,11 +379,15 @@ export class AuthService {
     const fullName =
       user.menteeProfile?.fullName ?? user.mentorProfile?.fullName ?? 'User';
 
-    await this.mailService.sendPasswordResetOtpEmail(
-      user.email,
-      fullName,
-      rawOtp,
-    );
+    try {
+      await this.mailService.sendPasswordResetOtpEmail(
+        user.email,
+        fullName,
+        rawOtp,
+      );
+    } catch (error) {
+      console.error('Failed to dispatch password reset email:', error);
+    }
 
     return {
       message:
