@@ -3,7 +3,16 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+enum UserRole {
+  MENTEE
+  MENTOR
+  ADMIN
+  SUPER_ADMIN
 }
 
 enum SkillLevel {
@@ -13,35 +22,89 @@ enum SkillLevel {
   EXPERT
 }
 
+enum OnboardingStatus {
+  INCOMPLETE
+  PENDING
+  COMPLETE
+}
+
+enum MentorshipStatus {
+  PENDING
+  ACTIVE
+  PAUSED
+  COMPLETED
+  CANCELLED
+}
+
+enum SessionStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+enum PaymentStatus {
+  PENDING
+  PROCESSING
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+enum PaymentMethod {
+  MTN_MOMO
+  ORANGE_MONEY
+  CARD
+  BANK
+}
+
 model Skill {
   id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name      String     @db.VarChar(255)
+  name      String     @unique @db.VarChar(255)
+  createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  userSkills UserSkill[]
+
+  @@index([name], map: "idx_skills_name")
+  @@map("skills")
+}
+
+model UserSkill {
+  id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String     @map("user_id") @db.Uuid
+  skillId   String     @map("skill_id") @db.Uuid
   level     SkillLevel @default(BEGINNER)
   createdAt DateTime   @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt DateTime   @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  menteeProfileId String?        @map("mentee_profile_id") @db.Uuid
-  mentorProfileId String?        @map("mentor_profile_id") @db.Uuid
-  menteeProfile   MenteeProfile? @relation(fields: [menteeProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  mentorProfile   MentorProfile? @relation(fields: [mentorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  skill Skill @relation(fields: [skillId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
-  @@index([name], map: "idx_skills_name")
-  @@index([menteeProfileId], map: "idx_skills_mentee_profile")
-  @@index([mentorProfileId], map: "idx_skills_mentor_profile")
-  @@map("skills")
+  @@unique([userId, skillId], map: "uq_user_skill")
+  @@index([userId], map: "idx_user_skills_user_id")
+  @@index([skillId], map: "idx_user_skills_skill_id")
+  @@map("user_skills")
 }
 
 model User {
   id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email         String         @unique @db.VarChar(255)
   passwordHash  String         @map("password_hash") @db.VarChar(255)
-  role          String         @default("MENTEE") @db.VarChar(32)
-  isActive      Boolean        @default(true) @map("is_active")
-  createdAt     DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
+  isMentor                  Boolean        @default(false) @map("is_mentor")
+  isActive                  Boolean        @default(true) @map("is_active")
+  isEmailVerified           Boolean        @default(false) @map("is_email_verified")
+  emailVerificationToken    String?        @map("email_verification_token") @db.VarChar(255)
+  emailVerificationExpires  DateTime?      @map("email_verification_expires") @db.Timestamptz(6)
+  passwordResetOtpHash      String?        @map("password_reset_otp_hash") @db.VarChar(255)
+  passwordResetOtpExpires   DateTime?      @map("password_reset_otp_expires") @db.Timestamptz(6)
+  passwordResetOtpAttempts  Int            @default(0) @map("password_reset_otp_attempts")
+  createdAt                 DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   menteeProfile MenteeProfile?
   mentorProfile MentorProfile?
+  userSkills    UserSkill[]
   mentorships   Mentorship[]   @relation("MenteeMentorships")
   payments      Payment[]
   reviews       Review[]
@@ -52,56 +115,88 @@ model User {
 }
 
 model MenteeProfile {
-  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId    String   @unique @map("user_id") @db.Uuid
-  fullName  String   @map("full_name") @db.VarChar(255)
-  avatarUrl String?  @map("avatar_url") @db.VarChar(512)
-  headline  String?  @db.VarChar(255)
-  goals     String?  @db.Text
-  interests String[] @default([])
-  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                  String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId              String   @unique @map("user_id") @db.Uuid
+  fullName            String   @map("full_name") @db.VarChar(255)
+  avatarUrl           String?  @map("avatar_url") @db.VarChar(512)
+  headline            String?  @db.VarChar(255)
+  goals               String[] @default([])
+  interests           String[] @default([])
+  currentRole         String?  @map("current_role") @db.VarChar(255)
+  educationBackground String?  @map("education_background") @db.Text
+  yearsOfExperience   Int?     @map("years_of_experience")
+  experienceLevel     String?  @map("experience_level") @db.VarChar(32)
+  availability        Json?
+  onboardingCompleted Boolean  @default(false) @map("onboarding_completed")
+  createdAt           DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt           DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  skills Skill[]
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([userId], map: "idx_mentee_profiles_user_id")
   @@map("mentee_profiles")
 }
-
 model MentorProfile {
-  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String       @unique @map("user_id") @db.Uuid
-  fullName    String       @map("full_name") @db.VarChar(255)
-  title       String       @db.VarChar(255)
-  company     String?      @db.VarChar(255)
-  bio         String?
-  isVerified  Boolean      @default(false) @map("is_verified")
-  createdAt   DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt   DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId            String           @unique @map("user_id") @db.Uuid
+  fullName          String           @map("full_name") @db.VarChar(255)
+  slug              String?          @unique @db.VarChar(255)
+  title             String           @db.VarChar(255)
+  company           String?          @db.VarChar(255)
+  bio               String?
+  experience        String?
+  areasOfExpertise  String[]         @default([]) @map("areas_of_expertise")
+  availability      Json?
+  onboardingStatus  String           @default("INCOMPLETE") @map("onboarding_status")
+  isVerified        Boolean          @default(false) @map("is_verified")
+  createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
-  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  skills      Skill[]
-  mentorships Mentorship[] @relation("MentorMentorships")
-  plans       Plan[]
-  reviews     Review[]     @relation("MentorReviews")
-  sessions    Session[]    @relation("MentorSessions")
+  user             User             @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mentorships      Mentorship[]     @relation("MentorMentorships")
+  plans            Plan[]
+  reviews          Review[]         @relation("MentorReviews")
+  sessions         Session[]        @relation("MentorSessions")
+  mentorCategories MentorCategory[]
 
   @@index([userId], map: "idx_mentor_profiles_user_id")
   @@map("mentor_profiles")
 }
 
+model Category {
+  id               String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name             String           @unique @db.VarChar(255)
+  slug             String           @unique @db.VarChar(255)
+  description      String?          @db.Text
+  createdAt        DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt        DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  mentorCategories MentorCategory[]
+
+  @@map("categories")
+}
+
+model MentorCategory {
+  mentorProfileId String        @map("mentor_profile_id") @db.Uuid
+  categoryId      String        @map("category_id") @db.Uuid
+  mentorProfile   MentorProfile @relation(fields: [mentorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  category        Category      @relation(fields: [categoryId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@id([mentorProfileId, categoryId])
+  @@map("mentor_categories")
+}
+
 model Plan {
-  id          String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  mentorId    String        @map("mentor_id") @db.Uuid
-  title       String        @db.VarChar(255)
-  description String?
-  priceAmount BigInt        @map("price_amount")
-  currency    String        @default("XAF") @db.VarChar(10)
-  isActive    Boolean       @default(true) @map("is_active")
-  createdAt   DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
-  mentorships Mentorship[]
-  mentor      MentorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id               String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mentorId         String        @map("mentor_id") @db.Uuid
+  title            String        @db.VarChar(255)
+  description      String?
+  priceAmount      BigInt        @map("price_amount")
+  currency         String        @default("XAF") @db.VarChar(10)
+  sessionsPerMonth Int           @default(1) @map("sessions_per_month")
+  isActive         Boolean       @default(true) @map("is_active")
+  createdAt        DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  mentorships      Mentorship[]
+  mentor           MentorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([mentorId], map: "idx_plans_mentor_id")
   @@map("plans")

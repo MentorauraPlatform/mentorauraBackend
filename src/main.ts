@@ -1,12 +1,29 @@
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe, VersioningType, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import cookieParser from 'cookie-parser';
+import type { Request, Response, NextFunction } from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule, {
     logger: ['error', 'warn', 'log'],
+  });
+
+  app.use(cookieParser());
+
+  // ── HTTP Request Logger Middleware ─────────────────────────────────────────
+  const httpLogger = new Logger('HTTP');
+  app.use((req: Request, res: Response, next: NextFunction) => {
+    const start = Date.now();
+    res.on('finish', () => {
+      const duration = Date.now() - start;
+      httpLogger.log(
+        `${req.method} ${req.originalUrl} ${res.statusCode} - ${duration}ms`,
+      );
+    });
+    next();
   });
 
   // ── Global prefix & versioning ─────────────────────────────────────────────
