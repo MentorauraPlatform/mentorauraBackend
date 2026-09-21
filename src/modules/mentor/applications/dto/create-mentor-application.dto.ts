@@ -7,7 +7,6 @@ import {
   MaxLength,
   ArrayMaxSize,
 } from 'class-validator';
-
 export class CreateMentorApplicationDto {
   @ApiProperty({
     example: 'Jane Doe',

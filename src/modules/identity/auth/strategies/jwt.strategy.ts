@@ -12,6 +12,11 @@ export interface JwtPayload {
   role?: string;
 }
 
+type RequestLike = { cookies?: Record<string, unknown> } & Record<
+  string,
+  unknown
+>;
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(configService: ConfigService) {

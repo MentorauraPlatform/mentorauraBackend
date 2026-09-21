@@ -1,4 +1,4 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ConfigModule } from '@nestjs/config';
 import { ThrottlerModule, ThrottlerGuard } from '@nestjs/throttler';
@@ -88,16 +88,18 @@ import { ResourcesModule } from './modules/content/resources/resources.module';
 
 import { OnboardingModule as MenteeOnboardingModule } from './modules/mentee/onboarding/onboarding.module';
 
+import { EventEmitterModule } from '@nestjs/event-emitter';
 import { PrismaModule } from './common/prisma/prisma.module';
 
 @Module({
   imports: [
-    // Global config â€” reads .env files & custom config factories
+    // Global config — reads .env files & custom config factories
     ConfigModule.forRoot({
       isGlobal: true,
       envFilePath: ['.env'],
       load: [appConfig, databaseConfig, jwtConfig],
     }),
+    EventEmitterModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         ttl: 60000,

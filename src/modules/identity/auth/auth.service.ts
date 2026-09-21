@@ -90,7 +90,6 @@ export class AuthService {
     );
 
     const isUserMentor = Boolean(user.isMentor);
-    const tokens = await this.generateTokens(user.id, user.email, isUserMentor);
 
     return {
       message:
@@ -101,7 +100,6 @@ export class AuthService {
         isMentor: isUserMentor,
         isEmailVerified: false,
       },
-      tokens,
     };
   }
 
@@ -331,10 +329,12 @@ export class AuthService {
       throw new NotFoundException('User profile not found');
     }
 
+    const role = user.isMentor ? 'mentor' : 'mentee';
+
     return {
       data: {
         ...user,
-        role: user.isMentor ? 'mentor' : 'mentee',
+        role,
       },
     };
   }
