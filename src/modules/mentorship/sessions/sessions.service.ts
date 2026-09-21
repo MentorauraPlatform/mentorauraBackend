@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, ForbiddenException } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 
 type MentorshipRole = 'mentee' | 'mentor';
@@ -7,15 +7,30 @@ type MentorshipRole = 'mentee' | 'mentor';
 export class SessionsService {
   constructor(private readonly prisma: PrismaService) {}
 
+  private async getMentorProfileId(userId: string): Promise<string> {
+    const profile = await this.prisma.mentorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+    if (!profile) {
+      throw new NotFoundException('Mentor profile not found');
+    }
+    return profile.id;
+  }
+
   async findForMentorship(
     mentorshipId: string,
     userId: string,
     role: MentorshipRole,
   ) {
-    const where =
-      role === 'mentee'
-        ? { id: mentorshipId, menteeId: userId }
-        : { id: mentorshipId, mentorId: userId };
+    let where: { id: string; menteeId?: string; mentorId?: string };
+
+    if (role === 'mentee') {
+      where = { id: mentorshipId, menteeId: userId };
+    } else {
+      const mentorProfileId = await this.getMentorProfileId(userId);
+      where = { id: mentorshipId, mentorId: mentorProfileId };
+    }
 
     const mentorship = await this.prisma.mentorship.findFirst({
       where,

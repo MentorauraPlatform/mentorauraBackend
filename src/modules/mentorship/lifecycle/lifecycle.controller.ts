@@ -20,15 +20,20 @@ import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '../../../common/decorators/roles.decorator';
-/* DTOs for mentorship actions are intentionally omitted when not used */
+import {
+  ActivateMentorshipDto,
+  CancelMentorshipDto,
+  CompleteMentorshipDto,
+  PauseMentorshipDto,
+} from './dto/mentorship-actions.dto';
 
 @ApiTags('Mentorship Lifecycle')
-@Controller({ path: 'mentorships', version: '1' })
+@Controller({ version: '1' })
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class LifecycleController {
   constructor(private readonly lifecycleService: LifecycleService) {}
 
-  @Get('mine')
+  @Get('mentorships/mine')
   @Roles(Role.MENTEE)
   @ApiOperation({ summary: 'List mentorships for current mentee' })
   @ApiBearerAuth('access-token')
@@ -37,7 +42,7 @@ export class LifecycleController {
     return this.lifecycleService.getMenteeMentorships(user.userId);
   }
 
-  @Get('mentor/mentorships')
+  @Get(['mentor/mentorships', 'mentorships/mentor/mentorships'])
   @Roles(Role.MENTOR)
   @ApiOperation({ summary: 'List mentorships for current mentor' })
   @ApiBearerAuth('access-token')
@@ -46,7 +51,7 @@ export class LifecycleController {
     return this.lifecycleService.getMentorMentorships(user.userId);
   }
 
-  @Get(':id')
+  @Get('mentorships/:id')
   @ApiOperation({ summary: 'Get mentorship detail' })
   @ApiBearerAuth('access-token')
   @ApiResponse({ status: 200, description: 'Mentorship detail retrieved' })
@@ -59,7 +64,7 @@ export class LifecycleController {
     return this.lifecycleService.getMentorship(id, user.userId, role);
   }
 
-  @Patch(':id/activate')
+  @Patch('mentorships/:id/activate')
   @Roles(Role.MENTOR, Role.MENTEE)
   @ApiOperation({ summary: 'Activate mentorship after payment' })
   @ApiBearerAuth('access-token')
@@ -68,12 +73,13 @@ export class LifecycleController {
   activateMentorship(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
+    @Body() _dto?: ActivateMentorshipDto,
   ) {
     const role = user.role === 'mentor' ? 'mentor' : 'mentee';
     return this.lifecycleService.activateMentorship(id, user.userId, role);
   }
 
-  @Patch(':id/complete')
+  @Patch('mentorships/:id/complete')
   @ApiOperation({ summary: 'Mark mentorship as completed' })
   @ApiBearerAuth('access-token')
   @ApiResponse({ status: 200, description: 'Mentorship completed' })
@@ -81,25 +87,32 @@ export class LifecycleController {
   completeMentorship(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
+    @Body() _dto?: CompleteMentorshipDto,
   ) {
     const role = user.role === 'mentor' ? 'mentor' : 'mentee';
     return this.lifecycleService.completeMentorship(id, user.userId, role);
   }
 
-  @Patch(':id/cancel')
-  @ApiOperation({ summary: 'Cancel mentorship' })
+  @Patch('mentorships/:id/cancel')
+  @ApiOperation({ summary: 'Cancel mentorship with reason' })
   @ApiBearerAuth('access-token')
   @ApiResponse({ status: 200, description: 'Mentorship cancelled' })
   @ApiResponse({ status: 404, description: 'Mentorship not found' })
   cancelMentorship(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
+    @Body() dto?: CancelMentorshipDto,
   ) {
     const role = user.role === 'mentor' ? 'mentor' : 'mentee';
-    return this.lifecycleService.cancelMentorship(id, user.userId, role);
+    return this.lifecycleService.cancelMentorship(
+      id,
+      user.userId,
+      role,
+      dto?.reason,
+    );
   }
 
-  @Patch(':id/pause')
+  @Patch('mentorships/:id/pause')
   @Roles(Role.MENTOR)
   @ApiOperation({ summary: 'Pause mentorship' })
   @ApiBearerAuth('access-token')
@@ -108,17 +121,31 @@ export class LifecycleController {
   pauseMentorship(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
+    @Body() _dto?: PauseMentorshipDto,
   ) {
     return this.lifecycleService.pauseMentorship(id, user.userId);
   }
 
-  @Post(':id/resume')
+  @Post('mentorships/:id/resume')
   @Roles(Role.MENTOR)
   @ApiOperation({ summary: 'Resume paused mentorship' })
   @ApiBearerAuth('access-token')
   @ApiResponse({ status: 200, description: 'Mentorship resumed' })
   @ApiResponse({ status: 404, description: 'Mentorship not found' })
-  resumeMentorship(
+  resumeMentorshipPost(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+  ) {
+    return this.lifecycleService.resumeMentorship(id, user.userId);
+  }
+
+  @Patch('mentorships/:id/resume')
+  @Roles(Role.MENTOR)
+  @ApiOperation({ summary: 'Resume paused mentorship' })
+  @ApiBearerAuth('access-token')
+  @ApiResponse({ status: 200, description: 'Mentorship resumed' })
+  @ApiResponse({ status: 404, description: 'Mentorship not found' })
+  resumeMentorshipPatch(
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
   ) {

@@ -17,7 +17,6 @@ import {
 import { ApplicationsService } from './applications.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
-import {} from /* Public */ '../../../common/decorators/public.decorator';
 import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
@@ -25,12 +24,12 @@ import { Role } from '../../../common/decorators/roles.decorator';
 import { CreateMentorshipApplicationDto } from './dto/create-application.dto';
 
 @ApiTags('Mentorship Applications')
-@Controller({ path: 'mentorships', version: '1' })
+@Controller({ version: '1' })
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class ApplicationsController {
   constructor(private readonly applicationsService: ApplicationsService) {}
 
-  @Post('apply')
+  @Post('mentorships/apply')
   @Roles(Role.MENTEE)
   @ApiOperation({ summary: 'Apply to a mentorship plan' })
   @ApiBearerAuth('access-token')
@@ -44,7 +43,7 @@ export class ApplicationsController {
     return this.applicationsService.applyToPlan(user.userId, dto);
   }
 
-  @Get('applications/mine')
+  @Get('mentorships/applications/mine')
   @Roles(Role.MENTEE)
   @ApiOperation({ summary: 'Get current mentee applications' })
   @ApiBearerAuth('access-token')
@@ -53,7 +52,7 @@ export class ApplicationsController {
     return this.applicationsService.getMyApplications(user.userId);
   }
 
-  @Get('mentor/applications')
+  @Get(['mentor/applications', 'mentorships/mentor/applications'])
   @Roles(Role.MENTOR)
   @ApiOperation({ summary: 'Get applications received by mentor' })
   @ApiBearerAuth('access-token')
@@ -62,7 +61,7 @@ export class ApplicationsController {
     return this.applicationsService.getMentorApplications(user.userId);
   }
 
-  @Patch('applications/:id/accept')
+  @Patch('mentorships/applications/:id/accept')
   @Roles(Role.MENTOR)
   @ApiOperation({ summary: 'Accept an application' })
   @ApiBearerAuth('access-token')
@@ -75,7 +74,7 @@ export class ApplicationsController {
     return this.applicationsService.acceptApplication(user.userId, id);
   }
 
-  @Patch('applications/:id/reject')
+  @Patch('mentorships/applications/:id/reject')
   @Roles(Role.MENTOR)
   @ApiOperation({ summary: 'Reject an application' })
   @ApiBearerAuth('access-token')
@@ -88,7 +87,7 @@ export class ApplicationsController {
     return this.applicationsService.rejectApplication(user.userId, id);
   }
 
-  @Delete('applications/:id')
+  @Delete('mentorships/applications/:id')
   @Roles(Role.MENTEE)
   @ApiOperation({ summary: 'Withdraw an application' })
   @ApiBearerAuth('access-token')
