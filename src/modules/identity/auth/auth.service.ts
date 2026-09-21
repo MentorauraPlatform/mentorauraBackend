@@ -329,10 +329,12 @@ export class AuthService {
       throw new NotFoundException('User profile not found');
     }
 
+    const role = user.isMentor ? 'mentor' : 'mentee';
+
     return {
       data: {
         ...user,
-        role: user.isMentor ? 'mentor' : 'mentee',
+        role,
       },
     };
   }

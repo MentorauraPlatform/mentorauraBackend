@@ -27,6 +27,14 @@ import type { CurrentUserPayload } from '../../../common/decorators/current-user
 export class PlansController {
   constructor(private readonly plansService: PlansService) {}
 
+  @Get('plans')
+  @Public()
+  @ApiOperation({ summary: 'List all active mentorship plans' })
+  @ApiResponse({ status: 200, description: 'Plans retrieved' })
+  findAll() {
+    return this.plansService.findAll();
+  }
+
   @Post('mentor/plans')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth('access-token')
