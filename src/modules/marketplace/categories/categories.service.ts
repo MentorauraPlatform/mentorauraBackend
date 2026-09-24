@@ -63,11 +63,42 @@ export class CategoriesService implements OnModuleInit {
   async findAll() {
     const categories = await this.prisma.category.findMany({
       orderBy: { name: 'asc' },
+      include: {
+        _count: {
+          select: {
+            mentorCategories: true,
+          },
+        },
+      },
     });
+
     if (categories.length === 0) {
       await this.seedDefaultCategories();
-      return this.prisma.category.findMany({ orderBy: { name: 'asc' } });
+      const seeded = await this.prisma.category.findMany({
+        orderBy: { name: 'asc' },
+        include: {
+          _count: {
+            select: {
+              mentorCategories: true,
+            },
+          },
+        },
+      });
+      return seeded.map((cat) => ({
+        id: cat.id,
+        name: cat.name,
+        slug: cat.slug,
+        description: cat.description,
+        mentorCount: cat._count.mentorCategories,
+      }));
     }
-    return categories;
+
+    return categories.map((cat) => ({
+      id: cat.id,
+      name: cat.name,
+      slug: cat.slug,
+      description: cat.description,
+      mentorCount: cat._count.mentorCategories,
+    }));
   }
 }
