@@ -40,6 +40,7 @@ import { ReviewsModule as MentorshipReviewsModule } from './modules/mentorship/r
 import { AvailabilityModule as SchedulingAvailabilityModule } from './modules/scheduling/availability/availability.module';
 import { SlotsModule } from './modules/scheduling/slots/slots.module';
 import { BookingsModule } from './modules/scheduling/bookings/bookings.module';
+import { BlackoutsModule } from './modules/scheduling/blackouts/blackouts.module';
 import { CalendarModule } from './modules/scheduling/calendar/calendar.module';
 
 // â”€â”€ Messaging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -143,6 +144,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
     SchedulingAvailabilityModule,
     SlotsModule,
     BookingsModule,
+    BlackoutsModule,
     CalendarModule,
 
     // Messaging

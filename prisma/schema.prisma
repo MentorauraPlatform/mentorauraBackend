@@ -50,6 +50,13 @@ enum SessionStatus {
   NO_SHOW
 }
 
+enum BookingStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
 enum PaymentStatus {
   PENDING
   PROCESSING
@@ -117,6 +124,7 @@ model User {
   reviews       Review[]
   sessions      Session[]      @relation("MenteeSessions")
   applications  MentorshipApplication[] @relation("MenteeApplications")
+  bookings      Booking[]      @relation("MenteeBookings")
 
   @@index([email], map: "idx_users_email")
   @@map("users")
@@ -167,6 +175,8 @@ model MentorProfile {
   sessions         Session[]        @relation("MentorSessions")
   mentorCategories MentorCategory[]
   applications     MentorshipApplication[] @relation("MentorApplications")
+  blackoutDates    BlackoutDate[]
+  bookings         Booking[]        @relation("MentorBookings")
 
   @@index([userId], map: "idx_mentor_profiles_user_id")
   @@map("mentor_profiles")
@@ -228,6 +238,7 @@ model Mentorship {
   payments  Payment[]
   reviews   Review[]
   sessions  Session[]
+  bookings  Booking[]
 
   @@index([menteeId], map: "idx_mentorships_mentee")
   @@index([mentorId], map: "idx_mentorships_mentor")
@@ -260,7 +271,7 @@ model Session {
   menteeId        String        @map("mentee_id") @db.Uuid
   scheduledAt     DateTime      @map("scheduled_at") @db.Timestamptz(6)
   durationMinutes Int           @default(60) @map("duration_minutes")
-  status          String        @default("SCHEDULED") @db.VarChar(32)
+  status          BookingStatus @default(SCHEDULED)
   meetingLink     String?       @map("meeting_link") @db.VarChar(512)
   createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   mentee          User          @relation("MenteeSessions", fields: [menteeId], references: [id], onUpdate: NoAction)
@@ -270,6 +281,42 @@ model Session {
   @@index([mentorshipId], map: "idx_sessions_mentorship")
   @@index([scheduledAt], map: "idx_sessions_scheduled_at")
   @@map("sessions")
+}
+
+model Booking {
+  id                String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mentorshipId      String        @map("mentorship_id") @db.Uuid
+  mentorId          String        @map("mentor_id") @db.Uuid
+  menteeId          String        @map("mentee_id") @db.Uuid
+  scheduledAt       DateTime      @map("scheduled_at") @db.Timestamptz(6)
+  durationMinutes   Int           @default(60) @map("duration_minutes")
+  status            BookingStatus @default(SCHEDULED)
+  meetingLink       String?       @map("meeting_link") @db.VarChar(512)
+  cancellationReason String?     @map("cancellation_reason") @db.Text
+  createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt         DateTime      @default(now()) @map("updated_at") @db.Timestamptz(6)
+
+  mentorship Mentorship @relation(fields: [mentorshipId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  mentee      User       @relation("MenteeBookings", fields: [menteeId], references: [id], onUpdate: NoAction)
+  mentor      MentorProfile @relation("MentorBookings", fields: [mentorId], references: [id], onUpdate: NoAction)
+
+  @@index([mentorId, scheduledAt], map: "idx_bookings_mentor_scheduled")
+  @@index([mentorshipId], map: "idx_bookings_mentorship")
+  @@map("bookings")
+}
+
+model BlackoutDate {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mentorProfileId String        @map("mentor_profile_id") @db.Uuid
+  date            DateTime      @db.Date
+  reason          String?       @db.VarChar(255)
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  mentorProfile MentorProfile @relation(fields: [mentorProfileId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([mentorProfileId, date], map: "uq_blackout_mentor_date")
+  @@index([mentorProfileId], map: "idx_blackouts_mentor")
+  @@map("blackout_dates")
 }
 
 model Payment {
