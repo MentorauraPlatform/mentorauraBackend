@@ -11,6 +11,7 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 import { RegisterDto, UserRole } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
 import { RefreshTokenDto } from './dto/refresh-token.dto';
+import { AcceptAdminInviteDto } from './dto/accept-admin-invite.dto';
 
 import * as crypto from 'crypto';
 import { MailService } from '../../../common/services/mail.service';
@@ -227,13 +228,15 @@ export class AuthService {
     }
 
     const isUserMentor = Boolean(user.isMentor);
-    const tokens = await this.generateTokens(user.id, user.email, isUserMentor);
+    const effectiveRole = this.getEffectiveRole(user);
+    const tokens = await this.generateTokens(user.id, user.email, isUserMentor, effectiveRole);
 
     return {
       message: 'Login successful',
       user: {
         id: user.id,
         email: user.email,
+        role: effectiveRole,
         isMentor: isUserMentor,
         fullName:
           user.menteeProfile?.fullName ?? user.mentorProfile?.fullName ?? '',
@@ -270,10 +273,12 @@ export class AuthService {
       }
 
       const isUserMentor = Boolean(user.isMentor);
+      const effectiveRole = this.getEffectiveRole(user);
       const tokens = await this.generateTokens(
         user.id,
         user.email,
         isUserMentor,
+        effectiveRole,
       );
 
       return {
@@ -294,6 +299,7 @@ export class AuthService {
       select: {
         id: true,
         email: true,
+        role: true,
         isMentor: true,
         isActive: true,
         createdAt: true,
@@ -329,13 +335,73 @@ export class AuthService {
       throw new NotFoundException('User profile not found');
     }
 
-    const role = user.isMentor ? 'mentor' : 'mentee';
+    const role = this.getEffectiveRole(user);
 
     return {
       data: {
         ...user,
         role,
       },
+    };
+  }
+
+  /**
+   * Accept admin invitation, set initial password, and activate account
+   */
+  async acceptAdminInvite(dto: AcceptAdminInviteDto) {
+    if (!dto.token) {
+      throw new UnauthorizedException('Invitation token is required');
+    }
+
+    const hashedToken = crypto.createHash('sha256').update(dto.token).digest('hex');
+
+    const user = await this.prisma.user.findFirst({
+      where: {
+        invitationToken: hashedToken,
+        invitationExpires: { gt: new Date() },
+      },
+      include: {
+        menteeProfile: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('Invalid or expired invitation token');
+    }
+
+    const passwordHash = await bcrypt.hash(dto.password, 12);
+
+    const updated = await this.prisma.user.update({
+      where: { id: user.id },
+      data: {
+        passwordHash,
+        isActive: true,
+        isEmailVerified: true,
+        invitationToken: null,
+        invitationExpires: null,
+      },
+    });
+
+    if (dto.fullName) {
+      await this.prisma.menteeProfile.upsert({
+        where: { userId: user.id },
+        update: { fullName: dto.fullName },
+        create: { userId: user.id, fullName: dto.fullName },
+      });
+    }
+
+    const effectiveRole = this.getEffectiveRole(updated);
+    const tokens = await this.generateTokens(updated.id, updated.email, false, effectiveRole);
+
+    return {
+      message: 'Administrative account activated successfully',
+      user: {
+        id: updated.id,
+        email: updated.email,
+        role: effectiveRole,
+        fullName: dto.fullName || user.menteeProfile?.fullName || 'Administrator',
+      },
+      tokens,
     };
   }
 
@@ -502,6 +568,17 @@ export class AuthService {
     };
   }
 
+  getEffectiveRole(user: { role?: string | null; isMentor?: boolean | null }): string {
+    const r = (user.role || '').toUpperCase();
+    if (r === 'SUPER_ADMIN') {
+      return 'super_admin';
+    }
+    if (r === 'ADMIN') {
+      return 'admin';
+    }
+    return user.isMentor ? 'mentor' : 'mentee';
+  }
+
   /**
    * Generate Access Token and Refresh Token pair
    */
@@ -509,8 +586,9 @@ export class AuthService {
     userId: string,
     email: string,
     isMentor: boolean,
+    userRole?: string,
   ) {
-    const role = isMentor ? 'mentor' : 'mentee';
+    const role = userRole || (isMentor ? 'mentor' : 'mentee');
     const payload = { sub: userId, email, isMentor, role };
 
     const accessSecret =

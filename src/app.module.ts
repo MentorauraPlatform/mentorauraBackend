@@ -40,6 +40,7 @@ import { ReviewsModule as MentorshipReviewsModule } from './modules/mentorship/r
 import { AvailabilityModule as SchedulingAvailabilityModule } from './modules/scheduling/availability/availability.module';
 import { SlotsModule } from './modules/scheduling/slots/slots.module';
 import { BookingsModule } from './modules/scheduling/bookings/bookings.module';
+import { BlackoutsModule } from './modules/scheduling/blackouts/blackouts.module';
 import { CalendarModule } from './modules/scheduling/calendar/calendar.module';
 
 // â”€â”€ Messaging â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
@@ -76,6 +77,7 @@ import { ModerationModule as ReviewsModerationModule } from './modules/reviews/m
 
 // â”€â”€ Administration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { UsersModule as AdminUsersModule } from './modules/administration/users/users.module';
+import { AdminMentorsModule } from './modules/administration/mentors/mentors.module';
 import { ConfigurationModule } from './modules/administration/configuration/configuration.module';
 import { DisputesModule } from './modules/administration/disputes/disputes.module';
 import { ModerationModule as AdminModerationModule } from './modules/administration/moderation/moderation.module';
@@ -143,6 +145,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
     SchedulingAvailabilityModule,
     SlotsModule,
     BookingsModule,
+    BlackoutsModule,
     CalendarModule,
 
     // Messaging
@@ -179,6 +182,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
 
     // Administration
     AdminUsersModule,
+    AdminMentorsModule,
     ConfigurationModule,
     DisputesModule,
     AdminModerationModule,

@@ -16,4 +16,13 @@ export class DiscoveryController {
     const data = await this.discoveryService.getFeaturedMentors();
     return { data };
   }
+
+  @Public()
+  @Get('stats')
+  @ApiOperation({ summary: 'Get platform metrics and statistics' })
+  @ApiResponse({ status: 200, description: 'Platform stats retrieved' })
+  async getStats() {
+    const data = await this.discoveryService.getPlatformStats();
+    return { data };
+  }
 }
