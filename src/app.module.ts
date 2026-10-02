@@ -77,6 +77,7 @@ import { ModerationModule as ReviewsModerationModule } from './modules/reviews/m
 
 // â”€â”€ Administration â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { UsersModule as AdminUsersModule } from './modules/administration/users/users.module';
+import { AdminMentorsModule } from './modules/administration/mentors/mentors.module';
 import { ConfigurationModule } from './modules/administration/configuration/configuration.module';
 import { DisputesModule } from './modules/administration/disputes/disputes.module';
 import { ModerationModule as AdminModerationModule } from './modules/administration/moderation/moderation.module';
@@ -181,6 +182,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
 
     // Administration
     AdminUsersModule,
+    AdminMentorsModule,
     ConfigurationModule,
     DisputesModule,
     AdminModerationModule,

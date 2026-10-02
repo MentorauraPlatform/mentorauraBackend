@@ -27,6 +27,7 @@ import {
   VerifyPasswordResetOtpDto,
   ResetPasswordWithOtpDto,
 } from './dto/forgot-password.dto';
+import { AcceptAdminInviteDto } from './dto/accept-admin-invite.dto';
 import { Public } from '../../../common/decorators/public.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
@@ -81,6 +82,38 @@ export class AuthController {
   @ApiResponse({ status: 401, description: 'Invalid credentials' })
   async login(@Body() dto: LoginDto, @Res() res: Response) {
     const result = await this.authService.login(dto);
+
+    const isProd = process.env.NODE_ENV === 'production';
+    res.cookie('access_token', result.tokens.accessToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax',
+      path: '/',
+      maxAge: 15 * 60 * 1000,
+    });
+
+    res.cookie('refresh_token', result.tokens.refreshToken, {
+      httpOnly: true,
+      secure: isProd,
+      sameSite: 'lax',
+      path: '/api/v1/auth/refresh',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
+    });
+
+    return res.json(result);
+  }
+
+  @Public()
+  @Post('admin/accept-invite')
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Accept administrative invitation and set password' })
+  @ApiResponse({ status: 200, description: 'Admin account activated successfully' })
+  @ApiResponse({ status: 401, description: 'Invalid or expired invitation token' })
+  async acceptAdminInvite(
+    @Body() dto: AcceptAdminInviteDto,
+    @Res() res: Response,
+  ) {
+    const result = await this.authService.acceptAdminInvite(dto);
 
     const isProd = process.env.NODE_ENV === 'production';
     res.cookie('access_token', result.tokens.accessToken, {
