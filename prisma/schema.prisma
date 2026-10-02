@@ -95,9 +95,10 @@ model UserSkill {
 }
 
 model User {
-  id            String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email         String         @unique @db.VarChar(255)
-  passwordHash  String         @map("password_hash") @db.VarChar(255)
+  id                        String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email                     String         @unique @db.VarChar(255)
+  passwordHash              String         @map("password_hash") @db.VarChar(255)
+  role                      UserRole       @default(MENTEE)
   isMentor                  Boolean        @default(false) @map("is_mentor")
   isActive                  Boolean        @default(true) @map("is_active")
   isEmailVerified           Boolean        @default(false) @map("is_email_verified")
@@ -106,8 +107,10 @@ model User {
   passwordResetOtpHash      String?        @map("password_reset_otp_hash") @db.VarChar(255)
   passwordResetOtpExpires   DateTime?      @map("password_reset_otp_expires") @db.Timestamptz(6)
   passwordResetOtpAttempts  Int            @default(0) @map("password_reset_otp_attempts")
+  invitationToken           String?        @map("invitation_token") @db.VarChar(255)
+  invitationExpires         DateTime?      @map("invitation_expires") @db.Timestamptz(6)
   createdAt                 DateTime       @default(now()) @map("created_at") @db.Timestamptz(6)
-  updatedAt     DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+  updatedAt                 DateTime       @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
   menteeProfile MenteeProfile?
   mentorProfile MentorProfile?
@@ -117,9 +120,24 @@ model User {
   reviews       Review[]
   sessions      Session[]      @relation("MenteeSessions")
   applications  MentorshipApplication[] @relation("MenteeApplications")
+  adminAuditLogs AdminAuditLog[]
 
   @@index([email], map: "idx_users_email")
   @@map("users")
+}
+
+model AdminAuditLog {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  adminId   String   @map("admin_id") @db.Uuid
+  action    String   @db.VarChar(100)
+  targetId  String   @map("target_id") @db.Uuid
+  details   Json?
+  ipAddress String?  @map("ip_address") @db.VarChar(45)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  admin User @relation(fields: [adminId], references: [id], onDelete: Cascade)
+
+  @@map("admin_audit_logs")
 }
 
 model MenteeProfile {
@@ -150,13 +168,20 @@ model MentorProfile {
   fullName          String           @map("full_name") @db.VarChar(255)
   slug              String?          @unique @db.VarChar(255)
   title             String           @db.VarChar(255)
+  headline          String?          @db.VarChar(255)
   company           String?          @db.VarChar(255)
   bio               String?
   experience        String?
+  yearsOfExperience Int?             @map("years_of_experience")
+  linkedinUrl       String?          @map("linkedin_url") @db.VarChar(512)
+  githubUrl         String?          @map("github_url") @db.VarChar(512)
+  idDocumentUrl     String?          @map("id_document_url") @db.VarChar(512)
+  cvUrl             String?          @map("cv_url") @db.VarChar(512)
   areasOfExpertise  String[]         @default([]) @map("areas_of_expertise")
   availability      Json?
   onboardingStatus  String           @default("INCOMPLETE") @map("onboarding_status")
   isVerified        Boolean          @default(false) @map("is_verified")
+  rejectionReason   String?          @map("rejection_reason") @db.Text
   createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
 
