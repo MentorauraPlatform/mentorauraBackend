@@ -36,6 +36,16 @@ const DAY_ALIASES: Record<string, string> = {
   sun: 'sunday',
 };
 
+function getTimezoneOffsetMinutes(timezone: string, date: Date): number {
+  const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
+  const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
+  return (tzDate.getTime() - utcDate.getTime()) / (60 * 1000);
+}
+
+function toUtcMinutes(localHour: number, localMinute: number, offsetMinutes: number): number {
+  return localHour * 60 + localMinute - offsetMinutes;
+}
+
 @Injectable()
 export class SlotsService {
   constructor(private readonly prisma: PrismaService) {}
@@ -64,6 +74,8 @@ export class SlotsService {
       return { data: [] };
     }
 
+    const mentorTimezone = (rawAvailability as AvailabilityFormatB).timezone || timezone;
+
     const fromDate = new Date(from);
     const toDate = new Date(to);
     if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
@@ -84,11 +96,18 @@ export class SlotsService {
         const [startHour, startMinute] = daySlots.startTime.split(':').map(Number);
         const [endHour, endMinute] = daySlots.endTime.split(':').map(Number);
 
-        const slotStart = new Date(current);
-        slotStart.setUTCHours(startHour, startMinute, 0, 0);
+        const dayStart = new Date(current);
+        dayStart.setUTCHours(0, 0, 0, 0);
 
-        const slotEnd = new Date(current);
-        slotEnd.setUTCHours(endHour, endMinute, 0, 0);
+        const offsetMinutes = getTimezoneOffsetMinutes(mentorTimezone, dayStart);
+        const slotStartMinutes = toUtcMinutes(startHour, startMinute, offsetMinutes);
+        const slotEndMinutes = toUtcMinutes(endHour, endMinute, offsetMinutes);
+
+        const slotStart = new Date(dayStart);
+        slotStart.setUTCMinutes(slotStartMinutes);
+
+        const slotEnd = new Date(dayStart);
+        slotEnd.setUTCMinutes(slotEndMinutes);
 
         if (slotStart < slotEnd) {
           if (slotStart < fromDate) {
