@@ -47,6 +47,43 @@ export class BookingsService {
         throw new ConflictException('This time slot was just booked by another user');
       }
 
+      if (mentorship.status === 'INTRO') {
+        const introBookingCount = await tx.booking.count({
+          where: {
+            mentorshipId: mentorship.id,
+            status: { notIn: [BookingStatus.CANCELLED] },
+          },
+        });
+
+        if (introBookingCount >= 1) {
+          throw new BadRequestException('Free intro call has already been booked for this mentorship.');
+        }
+      }
+
+      if (mentorship.status === 'ACTIVE' && mentorship.plan) {
+        const monthStart = new Date(scheduledAt);
+        monthStart.setUTCDate(1);
+        monthStart.setUTCHours(0, 0, 0, 0);
+
+        const monthEnd = new Date(monthStart);
+        monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+
+        const activeMonthBookings = await tx.booking.count({
+          where: {
+            mentorshipId: mentorship.id,
+            status: { notIn: [BookingStatus.CANCELLED] },
+            scheduledAt: {
+              gte: monthStart,
+              lt: monthEnd,
+            },
+          },
+        });
+
+        if (activeMonthBookings >= mentorship.plan.sessionsPerMonth) {
+          throw new BadRequestException('Monthly session quota exceeded for this plan.');
+        }
+      }
+
       return tx.booking.create({
         data: {
           mentorshipId: mentorship.id,
