@@ -1,10 +1,14 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, ConflictException } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma, BookingStatus } from '@prisma/client';
 
 @Injectable()
 export class BookingsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly eventEmitter: EventEmitter2,
+  ) {}
 
   async createBooking(menteeId: string, dto: { mentorshipId: string; scheduledAt: string; durationMinutes?: number }) {
     const mentorship = await this.prisma.mentorship.findUnique({
@@ -33,71 +37,88 @@ export class BookingsService {
 
     const meetingLink = `https://meet.mentoraura.com/room/session-${crypto.randomUUID()}`;
 
-    const booking = await this.prisma.$transaction(async (tx) => {
-      const existing = await tx.booking.findFirst({
-        where: {
-          mentorId: mentorship.mentorId,
-          scheduledAt,
-          status: { in: [BookingStatus.SCHEDULED] },
-        },
-        select: { id: true },
-      });
+    let booking;
+    try {
+      booking = await this.prisma.$transaction(async (tx) => {
+        const existing = await tx.booking.findFirst({
+          where: {
+            mentorId: mentorship.mentorId,
+            scheduledAt,
+            status: { in: [BookingStatus.SCHEDULED] },
+          },
+          select: { id: true },
+        });
 
-      if (existing) {
+        if (existing) {
+          throw new ConflictException('This time slot was just booked by another user');
+        }
+
+        if (mentorship.status === 'INTRO') {
+          const introBookingCount = await tx.booking.count({
+            where: {
+              mentorshipId: mentorship.id,
+              status: { notIn: [BookingStatus.CANCELLED] },
+            },
+          });
+
+          if (introBookingCount >= 1) {
+            throw new BadRequestException('Free intro call has already been booked for this mentorship.');
+          }
+        }
+
+        if (mentorship.status === 'ACTIVE' && mentorship.plan) {
+          const monthStart = new Date(scheduledAt);
+          monthStart.setUTCDate(1);
+          monthStart.setUTCHours(0, 0, 0, 0);
+
+          const monthEnd = new Date(monthStart);
+          monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
+
+          const activeMonthBookings = await tx.booking.count({
+            where: {
+              mentorshipId: mentorship.id,
+              status: { notIn: [BookingStatus.CANCELLED] },
+              scheduledAt: {
+                gte: monthStart,
+                lt: monthEnd,
+              },
+            },
+          });
+
+          if (activeMonthBookings >= mentorship.plan.sessionsPerMonth) {
+            throw new BadRequestException('Monthly session quota exceeded for this plan.');
+          }
+        }
+
+        return tx.booking.create({
+          data: {
+            mentorshipId: mentorship.id,
+            mentorId: mentorship.mentorId,
+            menteeId,
+            scheduledAt,
+            durationMinutes,
+            meetingLink,
+            status: BookingStatus.SCHEDULED,
+          },
+          include: {
+            mentorship: { include: { plan: true, mentor: true, mentee: true } },
+          },
+        });
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
         throw new ConflictException('This time slot was just booked by another user');
       }
+      throw error;
+    }
 
-      if (mentorship.status === 'INTRO') {
-        const introBookingCount = await tx.booking.count({
-          where: {
-            mentorshipId: mentorship.id,
-            status: { notIn: [BookingStatus.CANCELLED] },
-          },
-        });
-
-        if (introBookingCount >= 1) {
-          throw new BadRequestException('Free intro call has already been booked for this mentorship.');
-        }
-      }
-
-      if (mentorship.status === 'ACTIVE' && mentorship.plan) {
-        const monthStart = new Date(scheduledAt);
-        monthStart.setUTCDate(1);
-        monthStart.setUTCHours(0, 0, 0, 0);
-
-        const monthEnd = new Date(monthStart);
-        monthEnd.setUTCMonth(monthEnd.getUTCMonth() + 1);
-
-        const activeMonthBookings = await tx.booking.count({
-          where: {
-            mentorshipId: mentorship.id,
-            status: { notIn: [BookingStatus.CANCELLED] },
-            scheduledAt: {
-              gte: monthStart,
-              lt: monthEnd,
-            },
-          },
-        });
-
-        if (activeMonthBookings >= mentorship.plan.sessionsPerMonth) {
-          throw new BadRequestException('Monthly session quota exceeded for this plan.');
-        }
-      }
-
-      return tx.booking.create({
-        data: {
-          mentorshipId: mentorship.id,
-          mentorId: mentorship.mentorId,
-          menteeId,
-          scheduledAt,
-          durationMinutes,
-          meetingLink,
-          status: BookingStatus.SCHEDULED,
-        },
-        include: {
-          mentorship: { include: { plan: true, mentor: true, mentee: true } },
-        },
-      });
+    this.eventEmitter.emit('mentorship.booking.confirmed', {
+      bookingId: booking.id,
+      mentorshipId: booking.mentorshipId,
+      mentorId: booking.mentorId,
+      menteeId: booking.menteeId,
+      scheduledAt: booking.scheduledAt,
+      meetingLink: booking.meetingLink,
     });
 
     return { data: booking };
