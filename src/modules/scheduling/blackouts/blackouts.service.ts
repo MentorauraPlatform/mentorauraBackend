@@ -6,17 +6,17 @@ import { Prisma } from '@prisma/client';
 export class BlackoutDatesService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async list(mentorId: string) {
+  async list(userId: string) {
     const mentor = await this.prisma.mentorProfile.findUnique({
-      where: { id: mentorId },
+      where: { userId },
     });
 
     if (!mentor) {
-      throw new NotFoundException('Mentor not found');
+      throw new NotFoundException('Mentor profile not found');
     }
 
     const blackouts = await this.prisma.blackoutDate.findMany({
-      where: { mentorProfileId: mentorId },
+      where: { mentorProfileId: mentor.id },
       orderBy: { date: 'asc' },
       select: { id: true, date: true, reason: true, createdAt: true },
     });
@@ -24,13 +24,13 @@ export class BlackoutDatesService {
     return { data: blackouts };
   }
 
-  async create(mentorId: string, date: string, reason?: string) {
+  async create(userId: string, date: string, reason?: string) {
     const mentor = await this.prisma.mentorProfile.findUnique({
-      where: { id: mentorId },
+      where: { userId },
     });
 
     if (!mentor) {
-      throw new NotFoundException('Mentor not found');
+      throw new NotFoundException('Mentor profile not found');
     }
 
     const dateObj = new Date(date);
@@ -41,7 +41,7 @@ export class BlackoutDatesService {
     try {
       const blackout = await this.prisma.blackoutDate.create({
         data: {
-          mentorProfileId: mentorId,
+          mentorProfileId: mentor.id,
           date: dateObj,
           reason,
         },
@@ -57,7 +57,15 @@ export class BlackoutDatesService {
     }
   }
 
-  async remove(mentorId: string, id: string) {
+  async remove(userId: string, id: string) {
+    const mentor = await this.prisma.mentorProfile.findUnique({
+      where: { userId },
+    });
+
+    if (!mentor) {
+      throw new NotFoundException('Mentor profile not found');
+    }
+
     const blackout = await this.prisma.blackoutDate.findUnique({
       where: { id },
     });
@@ -66,7 +74,7 @@ export class BlackoutDatesService {
       throw new NotFoundException('Blackout date not found');
     }
 
-    if (blackout.mentorProfileId !== mentorId) {
+    if (blackout.mentorProfileId !== mentor.id) {
       throw new ForbiddenException('You are not authorized to delete this blackout date');
     }
 

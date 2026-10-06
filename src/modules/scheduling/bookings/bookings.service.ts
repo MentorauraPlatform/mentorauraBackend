@@ -83,9 +83,18 @@ export class BookingsService {
     return { data: bookings };
   }
 
-  async findMentorBookings(mentorId: string) {
+  async findMentorBookings(userId: string) {
+    const mentor = await this.prisma.mentorProfile.findUnique({
+      where: { userId },
+      select: { id: true },
+    });
+
+    if (!mentor) {
+      throw new NotFoundException('Mentor profile not found');
+    }
+
     const bookings = await this.prisma.booking.findMany({
-      where: { mentorId },
+      where: { mentorId: mentor.id },
       orderBy: { scheduledAt: 'desc' },
       include: {
         mentee: { select: { id: true, email: true } },
@@ -118,8 +127,15 @@ export class BookingsService {
       throw new NotFoundException('Booking not found');
     }
 
-    if (booking.menteeId !== userId && booking.mentorId !== userId) {
-      throw new ForbiddenException('You are not authorized to view this booking');
+    if (booking.menteeId !== userId) {
+      const mentor = await this.prisma.mentorProfile.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+
+      if (!mentor || booking.mentorId !== mentor.id) {
+        throw new ForbiddenException('You are not authorized to view this booking');
+      }
     }
 
     return booking;
@@ -134,8 +150,15 @@ export class BookingsService {
       throw new NotFoundException('Booking not found');
     }
 
-    if (booking.menteeId !== userId && booking.mentorId !== userId) {
-      throw new ForbiddenException('You are not authorized to cancel this booking');
+    if (booking.menteeId !== userId) {
+      const mentor = await this.prisma.mentorProfile.findUnique({
+        where: { userId },
+        select: { id: true },
+      });
+
+      if (!mentor || booking.mentorId !== mentor.id) {
+        throw new ForbiddenException('You are not authorized to cancel this booking');
+      }
     }
 
     if (booking.status !== BookingStatus.SCHEDULED) {

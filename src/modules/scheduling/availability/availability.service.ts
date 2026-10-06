@@ -6,30 +6,30 @@ import { Prisma } from '@prisma/client';
 export class AvailabilityService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getAvailability(mentorId: string) {
+  async getAvailability(userId: string) {
     const mentor = await this.prisma.mentorProfile.findUnique({
-      where: { id: mentorId },
+      where: { userId },
       select: { id: true, availability: true },
     });
 
     if (!mentor) {
-      throw new NotFoundException('Mentor not found');
+      throw new NotFoundException('Mentor profile not found');
     }
 
     return { data: mentor.availability ?? {} };
   }
 
-  async updateAvailability(mentorId: string, availability: Prisma.InputJsonValue) {
+  async updateAvailability(userId: string, availability: Prisma.InputJsonValue) {
     const mentor = await this.prisma.mentorProfile.findUnique({
-      where: { id: mentorId },
+      where: { userId },
     });
 
     if (!mentor) {
-      throw new NotFoundException('Mentor not found');
+      throw new NotFoundException('Mentor profile not found');
     }
 
     const updated = await this.prisma.mentorProfile.update({
-      where: { id: mentorId },
+      where: { id: mentor.id },
       data: { availability: availability as unknown as Prisma.InputJsonValue },
       select: { id: true, availability: true },
     });
