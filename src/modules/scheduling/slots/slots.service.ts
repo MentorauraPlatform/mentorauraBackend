@@ -1,10 +1,39 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
-import { Prisma, BookingStatus } from '@prisma/client';
+import { BookingStatus } from '@prisma/client';
 
 type Slot = {
   slotUtc: string;
   displayTime: string;
+};
+
+type AvailabilityEntry = {
+  day: string;
+  startTime: string;
+  endTime: string;
+};
+
+type AvailabilityFormatA = Record<string, Array<{ start: string; end: string }>>;
+type AvailabilityFormatB = {
+  timezone?: string;
+  slots?: AvailabilityEntry[];
+};
+
+const DAY_ALIASES: Record<string, string> = {
+  monday: 'monday',
+  mon: 'monday',
+  tuesday: 'tuesday',
+  tue: 'tuesday',
+  wednesday: 'wednesday',
+  wed: 'wednesday',
+  thursday: 'thursday',
+  thu: 'thursday',
+  friday: 'friday',
+  fri: 'friday',
+  saturday: 'saturday',
+  sat: 'saturday',
+  sunday: 'sunday',
+  sun: 'sunday',
 };
 
 @Injectable()
@@ -25,8 +54,13 @@ export class SlotsService {
       throw new BadRequestException('Mentor is not available for booking');
     }
 
-    const availability = (mentor.availability as Record<string, unknown> | null) ?? null;
-    if (!availability || typeof availability !== 'object') {
+    const rawAvailability = (mentor.availability as AvailabilityFormatB | AvailabilityFormatA | null) ?? null;
+    if (!rawAvailability || typeof rawAvailability !== 'object') {
+      return { data: [] };
+    }
+
+    const normalized = this.normalizeAvailability(rawAvailability);
+    if (normalized.length === 0) {
       return { data: [] };
     }
 
@@ -36,48 +70,49 @@ export class SlotsService {
       throw new BadRequestException('Invalid date range');
     }
 
+    const durationMs = 60 * 60 * 1000;
     const slots: Slot[] = [];
     const current = new Date(fromDate);
     current.setUTCHours(0, 0, 0, 0);
 
     while (current <= toDate) {
       const dayName = current.toLocaleDateString('en-US', { weekday: 'long', timeZone: timezone }).toLowerCase();
-      const daySlots = (availability as Record<string, unknown>)[dayName] as Array<{ start: string; end: string }> | undefined;
+      const normalizedDay = DAY_ALIASES[dayName] ?? dayName;
+      const daySlots = normalized.find((s) => s.day === normalizedDay);
 
-      if (daySlots && Array.isArray(daySlots)) {
-        for (const slot of daySlots) {
-          const [startHour, startMinute] = slot.start.split(':').map(Number);
-          const [endHour, endMinute] = slot.end.split(':').map(Number);
+      if (daySlots) {
+        const [startHour, startMinute] = daySlots.startTime.split(':').map(Number);
+        const [endHour, endMinute] = daySlots.endTime.split(':').map(Number);
 
-          const slotStart = new Date(current);
-          slotStart.setUTCHours(startHour, startMinute, 0, 0);
+        const slotStart = new Date(current);
+        slotStart.setUTCHours(startHour, startMinute, 0, 0);
 
-          const slotEnd = new Date(current);
-          slotEnd.setUTCHours(endHour, endMinute, 0, 0);
+        const slotEnd = new Date(current);
+        slotEnd.setUTCHours(endHour, endMinute, 0, 0);
 
-          if (slotStart >= slotEnd) {
-            continue;
-          }
-
+        if (slotStart < slotEnd) {
           if (slotStart < fromDate) {
-            continue;
-          }
-          if (slotStart > toDate) {
-            continue;
+            const diff = fromDate.getTime() - slotStart.getTime();
+            const remainder = diff % durationMs;
+            slotStart.setTime(slotStart.getTime() + diff + (remainder === 0 ? 0 : durationMs - remainder));
           }
 
-          const displayTime = slotStart.toLocaleString('en-US', {
-            timeZone: timezone,
-            month: 'short',
-            day: 'numeric',
-            hour: 'numeric',
-            minute: '2-digit',
-          });
+          while (slotStart.getTime() + durationMs <= slotEnd.getTime() && slotStart <= toDate) {
+            const displayTime = slotStart.toLocaleString('en-US', {
+              timeZone: timezone,
+              month: 'short',
+              day: 'numeric',
+              hour: 'numeric',
+              minute: '2-digit',
+            });
 
-          slots.push({
-            slotUtc: slotStart.toISOString(),
-            displayTime,
-          });
+            slots.push({
+              slotUtc: slotStart.toISOString(),
+              displayTime,
+            });
+
+            slotStart.setTime(slotStart.getTime() + durationMs);
+          }
         }
       }
 
@@ -131,5 +166,44 @@ export class SlotsService {
     }
 
     return { data: slots };
+  }
+
+  private normalizeAvailability(raw: Record<string, unknown>): AvailabilityEntry[] {
+    const entries: AvailabilityEntry[] = [];
+
+    const formatA = raw as AvailabilityFormatA;
+    const formatB = raw as AvailabilityFormatB;
+
+    if ('slots' in raw && Array.isArray(formatB.slots)) {
+      for (const entry of formatB.slots) {
+        if (entry && typeof entry === 'object' && 'day' in entry && 'startTime' in entry && 'endTime' in entry) {
+          const day = DAY_ALIASES[String(entry.day).toLowerCase()] ?? String(entry.day).toLowerCase();
+          entries.push({
+            day,
+            startTime: String(entry.startTime),
+            endTime: String(entry.endTime),
+          });
+        }
+      }
+      return entries;
+    }
+
+    const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    for (const dayKey of dayKeys) {
+      const value = formatA[dayKey];
+      if (Array.isArray(value)) {
+        for (const window of value) {
+          if (window && typeof window === 'object' && 'start' in window && 'end' in window) {
+            entries.push({
+              day: dayKey,
+              startTime: String(window.start),
+              endTime: String(window.end),
+            });
+          }
+        }
+      }
+    }
+
+    return entries;
   }
 }
