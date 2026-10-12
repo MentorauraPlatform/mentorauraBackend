@@ -4,16 +4,14 @@ import { PrismaClient } from '@prisma/client';
 @Injectable()
 export class PrismaService
   extends PrismaClient
-  implements OnModuleInit, OnModuleDestroy
-{
+  implements OnModuleInit, OnModuleDestroy {
   constructor() {
     super({
       datasources: {
         db: {
           url:
             process.env.DATABASE_URL ||
-            process.env.DIRECT_URL ||
-            'postgresql://postgres.opopvxzurkuqilzctser:mentoraurapasswor@aws-0-eu-west-2.pooler.supabase.com:6543/postgres?pgbouncer=true&connection_limit=1',
+            process.env.DIRECT_URL
         },
       },
     });
