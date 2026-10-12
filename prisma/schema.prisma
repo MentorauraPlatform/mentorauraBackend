@@ -327,6 +327,7 @@ model Booking {
 
   @@index([mentorId, scheduledAt], map: "idx_bookings_mentor_scheduled")
   @@index([mentorshipId], map: "idx_bookings_mentorship")
+  @@unique([mentorId, scheduledAt], map: "unique_mentor_slot")
   @@map("bookings")
 }
 
