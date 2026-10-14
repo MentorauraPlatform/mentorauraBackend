@@ -316,6 +316,7 @@ export class AuthService {
             headline: true,
             goals: true,
             interests: true,
+            onboardingCompleted: true,
           },
         },
         mentorProfile: {
