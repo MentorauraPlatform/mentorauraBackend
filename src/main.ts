@@ -10,6 +10,7 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<INestApplication>(AppModule, {
     logger: ['error', 'warn', 'log'],
+    rawBody: true,
   });
 
   const cookieParserMiddleware = cookieParser as unknown as (opts?: any) => any;
