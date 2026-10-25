@@ -109,7 +109,14 @@ export class ApplicationsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return { data: applications };
+    return {
+      data: applications.map((app) => ({
+        ...app,
+        plan: app.plan
+          ? { ...app.plan, priceAmount: Number(app.plan.priceAmount) }
+          : app.plan,
+      })),
+    };
   }
 
   async getMentorApplications(userId: string) {
@@ -126,7 +133,14 @@ export class ApplicationsService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return { data: applications };
+    return {
+      data: applications.map((app) => ({
+        ...app,
+        plan: app.plan
+          ? { ...app.plan, priceAmount: Number(app.plan.priceAmount) }
+          : app.plan,
+      })),
+    };
   }
 
   async acceptApplication(userId: string, applicationId: string) {

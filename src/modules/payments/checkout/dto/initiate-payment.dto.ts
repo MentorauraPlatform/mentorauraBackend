@@ -11,10 +11,10 @@ import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 export enum PaymentMethodProvider {
   MTN_MOMO = 'MTN_MOMO',
   ORANGE_MONEY = 'ORANGE_MONEY',
-  CARD = 'CARD',
-  ZOPAY = 'ZOPAY',
-  STRIPE = 'STRIPE',
-  CINETPAY = 'CINETPAY',
+  // CARD = 'CARD',
+  // ZOPAY = 'ZOPAY',
+  // STRIPE = 'STRIPE',
+  // CINETPAY = 'CINETPAY',
 }
 
 export class InitiatePaymentDto {

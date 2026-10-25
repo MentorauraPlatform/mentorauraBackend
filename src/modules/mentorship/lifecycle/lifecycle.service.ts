@@ -73,7 +73,14 @@ export class LifecycleService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return { data: mentorships };
+    return {
+      data: mentorships.map((m) => ({
+        ...m,
+        plan: m.plan
+          ? { ...m.plan, priceAmount: Number(m.plan.priceAmount) }
+          : m.plan,
+      })),
+    };
   }
 
   async getMentorMentorships(userId: string) {
@@ -90,7 +97,14 @@ export class LifecycleService {
       orderBy: { createdAt: 'desc' },
     });
 
-    return { data: mentorships };
+    return {
+      data: mentorships.map((m) => ({
+        ...m,
+        plan: m.plan
+          ? { ...m.plan, priceAmount: Number(m.plan.priceAmount) }
+          : m.plan,
+      })),
+    };
   }
 
   async activateMentorship(

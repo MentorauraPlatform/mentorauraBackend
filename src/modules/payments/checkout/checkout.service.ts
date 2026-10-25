@@ -198,7 +198,8 @@ export class CheckoutService {
         };
       }
 
-      // Hosted Card / Multi-gateway Checkout flow
+      /*
+      // Hosted Card / Multi-gateway Checkout flow (Commented out for now - using Mobile Money via ZoPay)
       const returnUrl =
         dto.returnUrl ||
         `${this.frontendUrl}/mentee/dashboard/mentorships/${mentorship.id}/checkout`;
@@ -240,6 +241,11 @@ export class CheckoutService {
         checkoutUrl: session.checkoutSession.checkoutUrl,
         instructions: 'Please complete your payment on the secure ZoPay payment portal.',
       };
+      */
+
+      throw new BadRequestException(
+        'Only MTN Mobile Money and Orange Money payments are supported at this time.',
+      );
     } catch (err: unknown) {
       const error = err as Error;
       this.logger.error(`Payment initiation failed: ${error.message}`, error.stack);

@@ -6,6 +6,11 @@ import type { Request, Response, NextFunction } from 'express';
 import type { INestApplication } from '@nestjs/common';
 import { AppModule } from './app.module';
 
+// Enable BigInt serialization in JSON responses
+(BigInt.prototype as any).toJSON = function () {
+  return Number(this);
+};
+
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create<INestApplication>(AppModule, {
