@@ -38,7 +38,11 @@ export class RolesGuard {
     const user = request.user;
     const userRole = user?.role;
 
-    if (!userRole || !requiredRoles.includes(userRole as Role)) {
+    const hasRole = requiredRoles.some(
+      (r) => r.toLowerCase() === userRole?.toLowerCase(),
+    );
+
+    if (!userRole || !hasRole) {
       throw new ForbiddenException('Access denied');
     }
 

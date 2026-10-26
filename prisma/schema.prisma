@@ -72,6 +72,43 @@ enum PaymentMethod {
   BANK
 }
 
+enum PayoutStatus {
+  PENDING
+  PROCESSING
+  PAID
+  REJECTED
+}
+
+enum DisputeStatus {
+  OPEN
+  UNDER_REVIEW
+  RESOLVED_REFUNDED
+  RESOLVED_REJECTED
+  RESOLVED_RESCHEDULED
+  CLOSED
+}
+
+enum DisputeReason {
+  SESSION_NO_SHOW
+  POOR_QUALITY
+  UNAUTHORIZED_CHARGE
+  MENTOR_UNRESPONSIVE
+  SCHEDULING_CONFLICT
+  OTHER
+}
+
+enum ModerationTargetType {
+  MESSAGE
+  USER_PROFILE
+  REVIEW
+}
+
+enum ModerationStatus {
+  PENDING
+  ACTION_TAKEN
+  DISMISSED
+}
+
 model Skill {
   id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String     @unique @db.VarChar(255)
@@ -132,6 +169,9 @@ model User {
   conversationsAsParticipant1 Conversation[] @relation("ConvParticipant1")
   conversationsAsParticipant2 Conversation[] @relation("ConvParticipant2")
   messages                    Message[]      @relation("UserMessages")
+  raisedDisputes              Dispute[]      @relation("RaisedDisputes")
+  targetDisputes              Dispute[]      @relation("TargetDisputes")
+  moderationReports           ModerationReport[] @relation("UserReports")
 
   @@index([email], map: "idx_users_email")
   @@map("users")
@@ -205,6 +245,7 @@ model MentorProfile {
   applications     MentorshipApplication[] @relation("MentorApplications")
   blackoutDates    BlackoutDate[]
   bookings         Booking[]        @relation("MentorBookings")
+  payouts          Payout[]
 
   @@index([userId], map: "idx_mentor_profiles_user_id")
   @@map("mentor_profiles")
@@ -268,6 +309,7 @@ model Mentorship {
   sessions  Session[]
   bookings  Booking[]
   conversation Conversation?
+  disputes  Dispute[]
 
   @@index([menteeId], map: "idx_mentorships_mentee")
   @@index([mentorId], map: "idx_mentorships_mentor")
@@ -328,6 +370,7 @@ model Booking {
   mentorship Mentorship @relation(fields: [mentorshipId], references: [id], onDelete: Cascade, onUpdate: NoAction)
   mentee      User       @relation("MenteeBookings", fields: [menteeId], references: [id], onUpdate: NoAction)
   mentor      MentorProfile @relation("MentorBookings", fields: [mentorId], references: [id], onUpdate: NoAction)
+  disputes    Dispute[]
 
   @@index([mentorId, scheduledAt], map: "idx_bookings_mentor_scheduled")
   @@index([mentorshipId], map: "idx_bookings_mentorship")
@@ -418,4 +461,83 @@ model Message {
   @@index([conversationId, createdAt])
   @@index([senderId])
   @@map("messages")
+}
+
+model Payout {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mentorId        String       @map("mentor_id") @db.Uuid
+  amount          BigInt
+  currency        String       @default("XAF") @db.VarChar(10)
+  provider        String       @db.VarChar(32) // MTN_MOMO, ORANGE_MONEY, BANK_TRANSFER
+  accountNumber   String       @map("account_number") @db.VarChar(100)
+  accountName     String?      @map("account_name") @db.VarChar(255)
+  status          PayoutStatus @default(PENDING)
+  transactionRef  String?      @map("transaction_ref") @db.VarChar(255)
+  rejectionReason String?      @map("rejection_reason") @db.Text
+  processedAt     DateTime?    @map("processed_at") @db.Timestamptz(6)
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime     @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  mentor          MentorProfile @relation(fields: [mentorId], references: [id], onDelete: Cascade)
+
+  @@index([mentorId])
+  @@index([status])
+  @@map("payouts")
+}
+
+model Dispute {
+  id              String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  mentorshipId    String?       @map("mentorship_id") @db.Uuid
+  bookingId       String?       @map("booking_id") @db.Uuid
+  raisedById      String        @map("raised_by_id") @db.Uuid
+  targetUserId    String?       @map("target_user_id") @db.Uuid
+  reason          DisputeReason @default(OTHER)
+  title           String        @db.VarChar(255)
+  description     String        @db.Text
+  status          DisputeStatus @default(OPEN)
+  resolutionNotes String?       @map("resolution_notes") @db.Text
+  resolvedAt      DateTime?     @map("resolved_at") @db.Timestamptz(6)
+  refundAmount    BigInt?       @map("refund_amount")
+  createdAt       DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
+  updatedAt       DateTime      @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  raisedBy        User          @relation("RaisedDisputes", fields: [raisedById], references: [id], onDelete: Cascade)
+  targetUser      User?         @relation("TargetDisputes", fields: [targetUserId], references: [id], onDelete: SetNull)
+  mentorship      Mentorship?   @relation(fields: [mentorshipId], references: [id], onDelete: SetNull)
+  booking         Booking?      @relation(fields: [bookingId], references: [id], onDelete: SetNull)
+
+  @@index([raisedById])
+  @@index([status])
+  @@map("disputes")
+}
+
+model ModerationReport {
+  id          String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  reporterId  String               @map("reporter_id") @db.Uuid
+  targetType  ModerationTargetType @map("target_type")
+  targetId    String               @map("target_id") @db.Uuid
+  reason      String               @db.VarChar(255)
+  details     String?              @db.Text
+  status      ModerationStatus     @default(PENDING)
+  actionTaken String?              @map("action_taken") @db.VarChar(100)
+  notes       String?              @db.Text
+  resolvedAt  DateTime?            @map("resolved_at") @db.Timestamptz(6)
+  createdAt   DateTime             @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  reporter    User                 @relation("UserReports", fields: [reporterId], references: [id], onDelete: Cascade)
+
+  @@index([reporterId])
+  @@index([status])
+  @@index([targetType])
+  @@map("moderation_reports")
+}
+
+model PlatformSetting {
+  key         String   @id @db.VarChar(100)
+  value       String   @db.Text
+  description String?  @db.VarChar(255)
+  updatedBy   String?  @map("updated_by") @db.Uuid
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
+
+  @@map("platform_settings")
 }

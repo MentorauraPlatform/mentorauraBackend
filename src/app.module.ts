@@ -82,6 +82,7 @@ import { ConfigurationModule } from './modules/administration/configuration/conf
 import { DisputesModule } from './modules/administration/disputes/disputes.module';
 import { ModerationModule as AdminModerationModule } from './modules/administration/moderation/moderation.module';
 import { ReportingModule } from './modules/administration/reporting/reporting.module';
+import { AdminPayoutsModule } from './modules/administration/payouts/payouts.module';
 
 // â”€â”€ Content â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 import { BlogModule } from './modules/content/blog/blog.module';
@@ -187,6 +188,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
     DisputesModule,
     AdminModerationModule,
     ReportingModule,
+    AdminPayoutsModule,
 
     // Content
     BlogModule,
