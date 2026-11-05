@@ -189,6 +189,8 @@ model MentorProfile {
   availability      Json?
   onboardingStatus  String           @default("INCOMPLETE") @map("onboarding_status")
   isVerified        Boolean          @default(false) @map("is_verified")
+  ratingAvg         Float            @default(0.0) @map("rating_avg")
+  reviewCount       Int              @default(0) @map("review_count")
   rejectionReason   String?          @map("rejection_reason") @db.Text
   createdAt         DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime         @default(now()) @updatedAt @map("updated_at") @db.Timestamptz(6)
