@@ -9,7 +9,7 @@ import { ConversationsService } from './conversations.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
 
-@Controller('api/v1/conversations')
+@Controller({ path: 'conversations', version: '1' })
 export class ConversationsController {
   constructor(private readonly conversationsService: ConversationsService) {}
 

@@ -16,7 +16,7 @@ import { SendMessageDto } from './dto/send-message.dto';
 import { GetMessagesQueryDto } from './dto/get-messages.dto';
 import { MarkReadDto } from './dto/mark-read.dto';
 
-@Controller('api/v1')
+@Controller({ path: '', version: '1' })
 export class MessagesController {
   constructor(
     private readonly messagesService: MessagesService,
@@ -50,14 +50,15 @@ export class MessagesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SendMessageDto,
   ) {
-    const { message, recipientId } = await this.messagesService.createMessage(
+    const { message, recipientId, recipientUser } = await this.messagesService.createMessage(
       user.userId,
       id,
       dto.content,
+      dto.attachmentIds,
     );
 
-    // Broadcast in real-time over WebSocket gateway
-    this.messagingGateway.broadcastNewMessage(id, message, recipientId);
+    // Broadcast in real-time over WebSocket gateway and trigger alerts
+    await this.messagingGateway.broadcastNewMessage(id, message, recipientId, recipientUser);
 
     return { data: message };
   }

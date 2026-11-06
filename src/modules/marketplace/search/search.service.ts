@@ -142,9 +142,15 @@ export class SearchService {
   }
 
   async getMentorBySlugOrId(slugOrId: string) {
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        slugOrId,
+      );
     const mentor = await this.prisma.mentorProfile.findFirst({
       where: {
-        OR: [{ id: slugOrId }, { slug: slugOrId }],
+        OR: isUuid
+          ? [{ id: slugOrId }, { slug: slugOrId }]
+          : [{ slug: slugOrId }],
         isVerified: true,
         onboardingStatus: 'COMPLETE',
       },

@@ -92,6 +92,7 @@ import { ResourcesModule } from './modules/content/resources/resources.module';
 import { OnboardingModule as MenteeOnboardingModule } from './modules/mentee/onboarding/onboarding.module';
 
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ScheduleModule } from '@nestjs/schedule';
 import { PrismaModule } from './common/prisma/prisma.module';
 
 @Module({
@@ -103,6 +104,7 @@ import { PrismaModule } from './common/prisma/prisma.module';
       load: [appConfig, databaseConfig, jwtConfig],
     }),
     EventEmitterModule.forRoot(),
+    ScheduleModule.forRoot(),
     ThrottlerModule.forRoot([
       {
         ttl: 60000,

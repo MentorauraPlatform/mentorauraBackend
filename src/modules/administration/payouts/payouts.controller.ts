@@ -15,22 +15,35 @@ import { PayoutStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles, Role } from '../../../common/decorators/roles.decorator';
+import { IsArray, IsNumber, IsOptional, IsString, Min } from 'class-validator';
 import { AdminPayoutsService } from './payouts.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
 
 class RejectPayoutBodyDto {
+  @IsString()
   rejectionReason!: string;
 }
 
 class BatchApproveBodyDto {
+  @IsArray()
+  @IsString({ each: true })
   payoutIds!: string[];
 }
 
-class RequestPayoutBodyDto {
+export class RequestPayoutBodyDto {
+  @IsNumber()
+  @Min(1)
   amount!: number;
+
+  @IsString()
   provider!: string;
+
+  @IsString()
   accountNumber!: string;
+
+  @IsOptional()
+  @IsString()
   accountName?: string;
 }
 
@@ -100,6 +113,14 @@ export class AdminPayoutsController {
   ) {
     const ip = req.ip || req.headers['x-forwarded-for'];
     return this.payoutsService.batchApprove(admin.userId, dto.payoutIds, ip);
+  }
+
+  @Get('balance')
+  @Roles(Role.MENTOR)
+  @ApiOperation({ summary: 'Get current mentor available balance and payout limits' })
+  async getBalance(@CurrentUser() user: CurrentUserPayload) {
+    const data = await this.payoutsService.getMentorBalance(user.userId);
+    return { data };
   }
 
   @Post('request')

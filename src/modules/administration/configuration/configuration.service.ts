@@ -68,8 +68,15 @@ export class ConfigurationService {
   ) {
     const updatedEntries: { key: string; value: string }[] = [];
 
+    const settingsToSave = { ...settings };
+    if (settingsToSave.global_commission_rate !== undefined) {
+      settingsToSave.platform_commission_percent = settingsToSave.global_commission_rate;
+    } else if (settingsToSave.platform_commission_percent !== undefined) {
+      settingsToSave.global_commission_rate = settingsToSave.platform_commission_percent;
+    }
+
     await this.prisma.$transaction(async (tx) => {
-      for (const [key, value] of Object.entries(settings)) {
+      for (const [key, value] of Object.entries(settingsToSave)) {
         if (value === undefined || value === null) continue;
 
         const stringVal = String(value).trim();

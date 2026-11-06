@@ -119,12 +119,21 @@ export class ZopayAdapter implements IPaymentProvider {
       this.configService.get<string>('FRONTEND_URL') ||
       'http://localhost:3000';
 
-    this.isConfigured = Boolean(this.apiKey);
+    const simulationMode = this.configService.get<string>('ZOPAY_SIMULATION_MODE');
+    const isMock = simulationMode === 'true' || simulationMode === '1';
+
+    this.isConfigured = Boolean(this.apiKey) && !isMock;
 
     if (!this.isConfigured) {
-      this.logger.warn(
-        '⚠️ ZoPay API key is not configured (ZOPAY_API_KEY). Falling back to mock simulation mode for local testing.',
-      );
+      if (isMock) {
+        this.logger.warn(
+          '⚠️ ZoPay running in mock simulation mode (ZOPAY_SIMULATION_MODE=true). Live API calls disabled.',
+        );
+      } else {
+        this.logger.warn(
+          '⚠️ ZoPay API key is not configured (ZOPAY_API_KEY). Falling back to mock simulation mode for local testing.',
+        );
+      }
     } else {
       this.logger.log(`ZoPay Gateway configured with API key (${this.apiKey.slice(0, 8)}...). Live calls enabled.`);
     }

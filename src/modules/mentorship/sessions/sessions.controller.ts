@@ -21,7 +21,7 @@ export class SessionsController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
   ) {
-    const role = user.role === 'mentor' ? 'mentor' : 'mentee';
+    const role = user.role?.toLowerCase() === 'mentor' ? 'mentor' : 'mentee';
     return this.sessionsService.findForMentorship(id, user.userId, role);
   }
 }

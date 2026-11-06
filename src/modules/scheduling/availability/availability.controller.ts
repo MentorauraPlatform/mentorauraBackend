@@ -39,7 +39,7 @@ export class AvailabilityController {
   })
   @ApiResponse({ status: 200, description: 'Availability updated' })
   @ApiResponse({ status: 404, description: 'Mentor not found' })
-  updateAvailability(@CurrentUser() user: CurrentUserPayload, @Body() availability: unknown) {
+  updateAvailability(@CurrentUser() user: CurrentUserPayload, @Body() availability: Record<string, unknown>) {
     return this.availabilityService.updateAvailability(user.userId, availability as never);
   }
 }

@@ -1,8 +1,11 @@
 import { Module } from '@nestjs/common';
+import { CalculationService } from './calculation.service';
+import { RulesModule } from '../rules/rules.module';
 
 @Module({
+  imports: [RulesModule],
   controllers: [],
-  providers: [],
-  exports: [],
+  providers: [CalculationService],
+  exports: [CalculationService],
 })
 export class CalculationModule {}

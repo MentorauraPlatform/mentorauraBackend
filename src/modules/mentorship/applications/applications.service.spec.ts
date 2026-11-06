@@ -31,6 +31,7 @@ describe('ApplicationsService', () => {
     },
     mentorship: {
       create: jest.fn(),
+      findFirst: jest.fn(),
     },
     $transaction: jest.fn(),
   };

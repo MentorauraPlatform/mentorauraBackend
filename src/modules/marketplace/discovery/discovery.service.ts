@@ -78,7 +78,7 @@ export class DiscoveryService {
       this.prisma.mentorProfile.count({
         where: { isVerified: true, onboardingStatus: 'COMPLETE' },
       }),
-      this.prisma.session.count({
+      this.prisma.booking.count({
         where: { status: 'COMPLETED' },
       }),
       this.prisma.review.findMany({

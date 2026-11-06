@@ -1,8 +1,13 @@
-import { IsNotEmpty, IsString, MaxLength } from 'class-validator';
+import { IsOptional, IsString, MaxLength, IsArray, IsUUID } from 'class-validator';
 
 export class SendMessageDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty()
   @MaxLength(5000)
-  content!: string;
+  content?: string;
+
+  @IsOptional()
+  @IsArray()
+  @IsUUID('4', { each: true })
+  attachmentIds?: string[];
 }

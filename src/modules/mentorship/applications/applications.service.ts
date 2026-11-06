@@ -53,19 +53,34 @@ export class ApplicationsService {
       throw new BadRequestException('Mentor is not available for applications');
     }
 
-    const existing: MentorshipApplication | null =
+    const pendingApp: MentorshipApplication | null =
       await this.prisma.mentorshipApplication.findFirst({
         where: {
           menteeId,
           mentorId: plan.mentorId,
-          planId: dto.planId,
           status: MentorshipApplicationStatus.PENDING,
         },
       });
 
-    if (existing) {
+    if (pendingApp) {
       throw new ConflictException(
-        'You already have a pending application for this plan',
+        'You already have a pending application with this mentor.',
+      );
+    }
+
+    const existingMentorship = await this.prisma.mentorship.findFirst({
+      where: {
+        menteeId,
+        mentorId: plan.mentorId,
+        status: { in: ['INTRO', 'ACTIVE', 'PAUSED'] },
+      },
+    });
+
+    if (existingMentorship) {
+      throw new ConflictException(
+        existingMentorship.status === 'INTRO'
+          ? 'You already have an accepted mentorship awaiting intro call or activation with this mentor.'
+          : 'You already have an active mentorship with this mentor.',
       );
     }
 
@@ -109,13 +124,25 @@ export class ApplicationsService {
       orderBy: { createdAt: 'desc' },
     });
 
+    const menteeMentorships = await this.prisma.mentorship.findMany({
+      where: { menteeId },
+      select: { id: true, mentorId: true, planId: true, status: true },
+    });
+
     return {
-      data: applications.map((app) => ({
-        ...app,
-        plan: app.plan
-          ? { ...app.plan, priceAmount: Number(app.plan.priceAmount) }
-          : app.plan,
-      })),
+      data: applications.map((app) => {
+        const matchingMentorship = menteeMentorships.find(
+          (m) => m.mentorId === app.mentorId && m.planId === app.planId,
+        );
+        return {
+          ...app,
+          mentorshipId: matchingMentorship?.id,
+          mentorshipStatus: matchingMentorship?.status,
+          plan: app.plan
+            ? { ...app.plan, priceAmount: Number(app.plan.priceAmount) }
+            : app.plan,
+        };
+      }),
     };
   }
 

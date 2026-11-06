@@ -49,11 +49,12 @@ async function bootstrap() {
       const normalized = origin.replace(/\/$/, '');
       if (
         allowedOrigins.includes(normalized) ||
-        normalized.endsWith('.vercel.app')
+        normalized.endsWith('.vercel.app') ||
+        (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized))
       ) {
         return callback(null, true);
       }
-      return callback(null, true);
+      return callback(new Error(`Origin ${origin} not allowed by CORS`), false);
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],

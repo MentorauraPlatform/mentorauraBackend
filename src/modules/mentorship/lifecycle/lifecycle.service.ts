@@ -45,9 +45,20 @@ export class LifecycleService {
       where: whereCondition,
       include: {
         mentee: { select: { id: true, email: true } },
-        mentor: { select: { id: true, fullName: true, title: true } },
+        mentor: { select: { id: true, fullName: true, title: true, company: true } },
         plan: {
           select: { id: true, title: true, priceAmount: true, currency: true },
+        },
+        bookings: {
+          orderBy: { scheduledAt: 'desc' },
+          select: {
+            id: true,
+            scheduledAt: true,
+            durationMinutes: true,
+            status: true,
+            meetingLink: true,
+            createdAt: true,
+          },
         },
       },
     });
@@ -68,6 +79,17 @@ export class LifecycleService {
         },
         plan: {
           select: { id: true, title: true, priceAmount: true, currency: true },
+        },
+        bookings: {
+          orderBy: { scheduledAt: 'desc' },
+          select: {
+            id: true,
+            scheduledAt: true,
+            durationMinutes: true,
+            status: true,
+            meetingLink: true,
+            createdAt: true,
+          },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -111,6 +133,7 @@ export class LifecycleService {
     mentorshipId: string,
     userId: string,
     role: MentorshipRole,
+    skipPaymentCheck = false,
   ) {
     const mentorship = await this.getMentorship(mentorshipId, userId, role);
 
@@ -118,6 +141,22 @@ export class LifecycleService {
       throw new BadRequestException(
         `Cannot activate mentorship with status '${mentorship.status}'. Only INTRO mentorships can be activated.`,
       );
+    }
+
+    const planPrice = mentorship.plan ? Number(mentorship.plan.priceAmount) : 0;
+    if (!skipPaymentCheck && planPrice > 0) {
+      const paidRecord = await this.prisma.payment.findFirst({
+        where: {
+          mentorshipId,
+          status: 'SUCCESS',
+        },
+        select: { id: true },
+      });
+      if (!paidRecord) {
+        throw new BadRequestException(
+          'A confirmed payment is required before activating this mentorship plan.',
+        );
+      }
     }
 
     const updated = await this.prisma.mentorship.update({

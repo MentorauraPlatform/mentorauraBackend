@@ -3,8 +3,17 @@ import {
   NotFoundException,
   ForbiddenException,
   BadRequestException,
+  Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
+
+export interface FormattedAttachment {
+  id: string;
+  fileName: string;
+  fileUrl: string;
+  fileType: string;
+  fileSize: number;
+}
 
 export interface FormattedMessage {
   id: string;
@@ -19,22 +28,58 @@ export interface FormattedMessage {
     name: string;
     avatarUrl: string | null;
   };
+  attachments: FormattedAttachment[];
 }
 
 @Injectable()
 export class MessagesService {
+  private readonly logger = new Logger(MessagesService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Helper to verify if user is part of conversation
+   * Helper to verify if user is active
+   */
+  async isUserActive(userId: string): Promise<boolean> {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { isActive: true },
+    });
+    return Boolean(user?.isActive);
+  }
+
+  /**
+   * Helper to verify if user is part of conversation and active
    */
   async validateMembership(userId: string, conversationId: string) {
+    const user = await this.prisma.user.findUnique({
+      where: { id: userId },
+      select: { id: true, isActive: true },
+    });
+
+    if (!user || !user.isActive) {
+      throw new ForbiddenException('User account is suspended or inactive');
+    }
+
     const conv = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
-      select: {
-        id: true,
-        participant1Id: true,
-        participant2Id: true,
+      include: {
+        participant1: {
+          select: {
+            id: true,
+            email: true,
+            mentorProfile: { select: { fullName: true } },
+            menteeProfile: { select: { fullName: true } },
+          },
+        },
+        participant2: {
+          select: {
+            id: true,
+            email: true,
+            mentorProfile: { select: { fullName: true } },
+            menteeProfile: { select: { fullName: true } },
+          },
+        },
       },
     });
 
@@ -48,16 +93,14 @@ export class MessagesService {
       );
     }
 
-    const recipientId =
-      conv.participant1Id === userId
-        ? conv.participant2Id
-        : conv.participant1Id;
+    const recipient =
+      conv.participant1Id === userId ? conv.participant2 : conv.participant1;
 
-    return { conv, recipientId };
+    return { conv, recipientId: recipient.id, recipient };
   }
 
   /**
-   * Format message with sender details
+   * Format message with sender details and attachments
    */
   private formatMessage(msg: any): FormattedMessage {
     const name =
@@ -66,6 +109,16 @@ export class MessagesService {
       msg.sender?.email?.split('@')[0] ||
       'User';
     const avatarUrl = msg.sender?.menteeProfile?.avatarUrl || null;
+
+    const attachments: FormattedAttachment[] = (msg.attachments || []).map(
+      (att: any) => ({
+        id: att.id,
+        fileName: att.fileName,
+        fileUrl: att.fileUrl,
+        fileType: att.fileType,
+        fileSize: att.fileSize,
+      }),
+    );
 
     return {
       id: msg.id,
@@ -80,17 +133,18 @@ export class MessagesService {
         name,
         avatarUrl,
       },
+      attachments,
     };
   }
 
   /**
-   * Cursor-paginated message history
+   * Cursor-paginated message history with attachments
    */
   async getMessages(
     userId: string,
     conversationId: string,
     cursor?: string,
-    limit: number = 30,
+    limit = 30,
   ) {
     await this.validateMembership(userId, conversationId);
 
@@ -109,6 +163,15 @@ export class MessagesService {
             email: true,
             mentorProfile: { select: { fullName: true } },
             menteeProfile: { select: { fullName: true, avatarUrl: true } },
+          },
+        },
+        attachments: {
+          select: {
+            id: true,
+            fileName: true,
+            fileUrl: true,
+            fileType: true,
+            fileSize: true,
           },
         },
       },
@@ -132,29 +195,38 @@ export class MessagesService {
   }
 
   /**
-   * Create and persist a message
+   * Create and persist a message with optional attachments
    */
   async createMessage(
     userId: string,
     conversationId: string,
-    content: string,
-  ): Promise<{ message: FormattedMessage; recipientId: string }> {
-    const trimmed = content?.trim();
-    if (!trimmed) {
-      throw new BadRequestException('Message content cannot be empty');
+    content?: string,
+    attachmentIds?: string[],
+  ): Promise<{
+    message: FormattedMessage;
+    recipientId: string;
+    recipientUser: any;
+  }> {
+    const trimmed = content?.trim() || '';
+    const hasAttachments = attachmentIds && attachmentIds.length > 0;
+
+    if (!trimmed && !hasAttachments) {
+      throw new BadRequestException('Message must contain text content or an attachment');
     }
 
-    const { recipientId } = await this.validateMembership(
+    const { recipientId, recipient } = await this.validateMembership(
       userId,
       conversationId,
     );
 
-    const [created] = await this.prisma.$transaction([
-      this.prisma.message.create({
+    const messageContent = trimmed || (hasAttachments ? 'Sent an attachment' : '');
+
+    const [created] = await this.prisma.$transaction(async (tx) => {
+      const msg = await tx.message.create({
         data: {
           conversationId,
           senderId: userId,
-          content: trimmed,
+          content: messageContent,
           isRead: false,
         },
         include: {
@@ -167,16 +239,51 @@ export class MessagesService {
             },
           },
         },
-      }),
-      this.prisma.conversation.update({
+      });
+
+      if (hasAttachments) {
+        await tx.messageAttachment.updateMany({
+          where: { id: { in: attachmentIds }, messageId: null },
+          data: { messageId: msg.id },
+        });
+      }
+
+      await tx.conversation.update({
         where: { id: conversationId },
         data: { lastMessageAt: new Date() },
-      }),
-    ]);
+      });
+
+      // Refetch with attachments populated
+      const fullMsg = await tx.message.findUnique({
+        where: { id: msg.id },
+        include: {
+          sender: {
+            select: {
+              id: true,
+              email: true,
+              mentorProfile: { select: { fullName: true } },
+              menteeProfile: { select: { fullName: true, avatarUrl: true } },
+            },
+          },
+          attachments: {
+            select: {
+              id: true,
+              fileName: true,
+              fileUrl: true,
+              fileType: true,
+              fileSize: true,
+            },
+          },
+        },
+      });
+
+      return [fullMsg!];
+    });
 
     return {
       message: this.formatMessage(created),
       recipientId,
+      recipientUser: recipient,
     };
   }
 

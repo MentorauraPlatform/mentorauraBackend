@@ -178,6 +178,7 @@ export class CheckoutService {
             mentorship.id,
             mentorship.menteeId,
             'mentee',
+            true,
           );
         }
 
@@ -320,6 +321,7 @@ export class CheckoutService {
               payment.mentorshipId,
               payment.userId,
               'mentee',
+              true,
             );
           }
 

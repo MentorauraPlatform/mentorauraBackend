@@ -36,7 +36,16 @@ const DAY_ALIASES: Record<string, string> = {
   sun: 'sunday',
 };
 
+function assertValidTimezone(timezone: string): void {
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: timezone });
+  } catch {
+    throw new BadRequestException(`Invalid IANA timezone: ${timezone}`);
+  }
+}
+
 function getTimezoneOffsetMinutes(timezone: string, date: Date): number {
+  assertValidTimezone(timezone);
   const utcDate = new Date(date.toLocaleString('en-US', { timeZone: 'UTC' }));
   const tzDate = new Date(date.toLocaleString('en-US', { timeZone: timezone }));
   return (tzDate.getTime() - utcDate.getTime()) / (60 * 1000);
@@ -74,12 +83,19 @@ export class SlotsService {
       return { data: [] };
     }
 
+    assertValidTimezone(timezone);
     const mentorTimezone = (rawAvailability as AvailabilityFormatB).timezone || timezone;
+    assertValidTimezone(mentorTimezone);
 
     const fromDate = new Date(from);
     const toDate = new Date(to);
-    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime())) {
+    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime()) || toDate < fromDate) {
       throw new BadRequestException('Invalid date range');
+    }
+
+    const maxWindowMs = 62 * 24 * 60 * 60 * 1000;
+    if (toDate.getTime() - fromDate.getTime() > maxWindowMs) {
+      throw new BadRequestException('Date range cannot exceed 60 days');
     }
 
     const durationMs = 60 * 60 * 1000;
@@ -87,12 +103,14 @@ export class SlotsService {
     const current = new Date(fromDate);
     current.setUTCHours(0, 0, 0, 0);
 
-    while (current <= toDate) {
-      const dayName = current.toLocaleDateString('en-US', { weekday: 'long', timeZone: timezone }).toLowerCase();
-      const normalizedDay = DAY_ALIASES[dayName] ?? dayName;
-      const daySlots = normalized.find((s) => s.day === normalizedDay);
+    const earliestBookable = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours minimum advance notice
 
-      if (daySlots) {
+    while (current <= toDate) {
+      const dayName = current.toLocaleDateString('en-US', { weekday: 'long', timeZone: mentorTimezone }).toLowerCase();
+      const normalizedDay = DAY_ALIASES[dayName] ?? dayName;
+      const matchingDaySlots = normalized.filter((s) => s.day === normalizedDay);
+
+      for (const daySlots of matchingDaySlots) {
         const [startHour, startMinute] = daySlots.startTime.split(':').map(Number);
         const [endHour, endMinute] = daySlots.endTime.split(':').map(Number);
 
@@ -117,18 +135,21 @@ export class SlotsService {
           }
 
           while (slotStart.getTime() + durationMs <= slotEnd.getTime() && slotStart <= toDate) {
-            const displayTime = slotStart.toLocaleString('en-US', {
-              timeZone: timezone,
-              month: 'short',
-              day: 'numeric',
-              hour: 'numeric',
-              minute: '2-digit',
-            });
+            // Must satisfy advance notice cutoff
+            if (slotStart.getTime() >= earliestBookable.getTime()) {
+              const displayTime = slotStart.toLocaleString('en-US', {
+                timeZone: timezone,
+                month: 'short',
+                day: 'numeric',
+                hour: 'numeric',
+                minute: '2-digit',
+              });
 
-            slots.push({
-              slotUtc: slotStart.toISOString(),
-              displayTime,
-            });
+              slots.push({
+                slotUtc: slotStart.toISOString(),
+                displayTime,
+              });
+            }
 
             slotStart.setTime(slotStart.getTime() + durationMs);
           }
@@ -138,25 +159,25 @@ export class SlotsService {
       current.setUTCDate(current.getUTCDate() + 1);
     }
 
-    const slotUtcs = slots.map((s) => s.slotUtc);
-    if (slotUtcs.length > 0) {
+    if (slots.length > 0) {
+      const minSlotTime = new Date(new Date(slots[0].slotUtc).getTime() - 3 * 60 * 60 * 1000);
+      const maxSlotTime = new Date(new Date(slots[slots.length - 1].slotUtc).getTime() + 3 * 60 * 60 * 1000);
+
       const existingBookings = await this.prisma.booking.findMany({
         where: {
           mentorId,
           status: { in: [BookingStatus.SCHEDULED] },
-          scheduledAt: { in: slotUtcs.map((utc) => new Date(utc)) },
+          scheduledAt: { gte: minSlotTime, lte: maxSlotTime },
         },
-        select: { scheduledAt: true },
+        select: { scheduledAt: true, durationMinutes: true },
       });
-
-      const bookedSet = new Set(existingBookings.map((b) => b.scheduledAt.toISOString()));
 
       const blackouts = await this.prisma.blackoutDate.findMany({
         where: {
           mentorProfileId: mentorId,
           date: {
-            gte: fromDate,
-            lte: toDate,
+            gte: new Date(fromDate.getTime() - 24 * 60 * 60 * 1000),
+            lte: new Date(toDate.getTime() + 24 * 60 * 60 * 1000),
           },
         },
         select: { date: true },
@@ -171,11 +192,26 @@ export class SlotsService {
 
       const filtered = slots.filter((s) => {
         const dt = new Date(s.slotUtc);
-        const dateKey = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
-        if (bookedSet.has(s.slotUtc)) {
+        const slotStartMs = dt.getTime();
+        const slotEndMs = slotStartMs + durationMs;
+
+        const hasOverlap = existingBookings.some((b) => {
+          const bStart = b.scheduledAt.getTime();
+          const bEnd = bStart + (b.durationMinutes || 60) * 60 * 1000;
+          return bStart < slotEndMs && bEnd > slotStartMs;
+        });
+        if (hasOverlap) {
           return false;
         }
-        if (blackoutSet.has(dateKey)) {
+
+        const mentorLocalDateParts = new Intl.DateTimeFormat('en-CA', {
+          timeZone: mentorTimezone,
+          year: 'numeric',
+          month: '2-digit',
+          day: '2-digit',
+        }).format(dt);
+        const utcDateKey = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
+        if (blackoutSet.has(mentorLocalDateParts) || blackoutSet.has(utcDateKey)) {
           return false;
         }
         return true;

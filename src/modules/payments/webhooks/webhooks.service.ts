@@ -98,8 +98,8 @@ export class WebhooksService {
 
     // 3. Handle Payment Succeeded
     if (event === 'payment.succeeded') {
-      // Idempotency: if already SUCCESS, no-op
-      if (payment.status === 'SUCCESS') {
+      // Idempotency: if already SUCCESS and mentorship is already ACTIVE, no-op
+      if (payment.status === 'SUCCESS' && payment.mentorship?.status !== 'INTRO') {
         this.logger.log(`Payment ${payment.id} already marked SUCCESS (idempotent callback)`);
         return { received: true, status: 'SUCCESS', alreadyProcessed: true };
       }
@@ -124,6 +124,7 @@ export class WebhooksService {
             payment.mentorshipId,
             payment.userId,
             'mentee',
+            true,
           );
           this.logger.log(
             `Mentorship ${payment.mentorshipId} successfully transitioned from INTRO to ACTIVE`,
@@ -132,6 +133,7 @@ export class WebhooksService {
           this.logger.error(
             `Failed to activate mentorship ${payment.mentorshipId}: ${(actErr as Error).message}`,
           );
+          throw actErr;
         }
       }
 

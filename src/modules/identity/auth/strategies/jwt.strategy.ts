@@ -2,6 +2,7 @@ import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { ConfigService } from '@nestjs/config';
+import { PrismaService } from '../../../../common/prisma/prisma.service';
 
 import type { Request } from 'express';
 
@@ -19,7 +20,10 @@ type RequestLike = { cookies?: Record<string, unknown> } & Record<
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly prisma: PrismaService,
+  ) {
     const secret =
       configService.get<string>('jwt.secret') ?? 'super-secret-key';
     const bearerExtractor = ExtractJwt.fromAuthHeaderAsBearerToken();
@@ -43,17 +47,44 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  validate(payload: JwtPayload) {
+  async validate(payload: JwtPayload) {
     if (!payload.sub) {
       throw new UnauthorizedException('Invalid token payload');
     }
 
-    const role = payload.role ?? (payload.isMentor ? 'mentor' : 'mentee');
+    const user = await this.prisma.user.findUnique({
+      where: { id: payload.sub },
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isMentor: true,
+        isActive: true,
+      },
+    });
+
+    if (!user) {
+      throw new UnauthorizedException('User account no longer exists');
+    }
+
+    if (!user.isActive) {
+      throw new UnauthorizedException(
+        'User account has been suspended or deactivated',
+      );
+    }
+
+    const rawRole = user.role?.toLowerCase();
+    const role =
+      rawRole === 'admin' || rawRole === 'super_admin'
+        ? rawRole
+        : user.isMentor || rawRole === 'mentor' || payload.role?.toLowerCase() === 'mentor'
+          ? 'mentor'
+          : 'mentee';
 
     return {
-      userId: payload.sub,
-      email: payload.email,
-      isMentor: payload.isMentor ?? false,
+      userId: user.id,
+      email: user.email,
+      isMentor: Boolean(user.isMentor),
       role,
     };
   }

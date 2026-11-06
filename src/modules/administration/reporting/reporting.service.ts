@@ -3,6 +3,23 @@ import { PrismaService } from '../../../common/prisma/prisma.service';
 
 export interface FinancialSummaryDto {
   currency: string;
+  // Primary frontend contract fields
+  gmv: number;
+  platformCommission: number;
+  mentorVolume: number;
+  totalTransactions: number;
+  successfulTransactions: number;
+  breakdown: {
+    byProvider: Record<string, { count: number; volume: number }>;
+    byStatus: Record<string, number>;
+  };
+  monthlyTrends: {
+    month: string;
+    gmv: number;
+    commission: number;
+    transactions: number;
+  }[];
+  // Backward compatible fields
   totalGmv: number;
   platformCommissionPercent: number;
   totalPlatformRevenue: number;
@@ -29,11 +46,14 @@ export class ReportingService {
   constructor(private readonly prisma: PrismaService) {}
 
   /**
-   * Get Platform Commission Rate from PlatformSetting or default 15%
+   * Get Platform Commission Rate from PlatformSetting (checks both global_commission_rate and platform_commission_percent)
    */
   async getCommissionRate(): Promise<number> {
-    const setting = await this.prisma.platformSetting.findUnique({
-      where: { key: 'platform_commission_percent' },
+    const setting = await this.prisma.platformSetting.findFirst({
+      where: {
+        key: { in: ['global_commission_rate', 'platform_commission_percent'] },
+      },
+      orderBy: { updatedAt: 'desc' },
     });
     if (setting?.value) {
       const parsed = parseFloat(setting.value);
@@ -111,6 +131,11 @@ export class ReportingService {
       }),
     );
 
+    const byProviderRecord: Record<string, { count: number; volume: number }> = {};
+    for (const [provider, data] of providerMap.entries()) {
+      byProviderRecord[provider] = { count: data.count, volume: data.amount };
+    }
+
     // Sort last 6 months trend
     const monthlyTrend = Array.from(monthMap.entries())
       .sort((a, b) => a[0].localeCompare(b[0]))
@@ -122,8 +147,32 @@ export class ReportingService {
         count: data.count,
       }));
 
+    const monthlyTrends = monthlyTrend.map((t) => ({
+      month: t.month,
+      gmv: t.gmv,
+      commission: t.platformRevenue,
+      transactions: t.count,
+    }));
+
     return {
       currency: 'XAF',
+      // Frontend matching keys
+      gmv: totalGmv,
+      platformCommission: totalPlatformRevenue,
+      mentorVolume: netMentorEarnings,
+      totalTransactions: allPayments.length,
+      successfulTransactions: successfulCount,
+      breakdown: {
+        byProvider: byProviderRecord,
+        byStatus: {
+          SUCCESS: successfulCount,
+          PENDING: pendingCount,
+          FAILED: failedCount,
+        },
+      },
+      monthlyTrends,
+
+      // Additional backward-compatible fields
       totalGmv,
       platformCommissionPercent: commissionPercent,
       totalPlatformRevenue,
@@ -150,9 +199,16 @@ export class ReportingService {
     const limit = Math.min(100, Math.max(1, Number(query.limit || 20)));
     const skip = (page - 1) * limit;
 
+    const commissionPercent = await this.getCommissionRate();
+
     const where: any = {};
     if (query.status) {
-      where.status = query.status.toUpperCase();
+      const statusUpper = query.status.toUpperCase();
+      if (statusUpper === 'COMPLETED') {
+        where.status = 'SUCCESS';
+      } else {
+        where.status = statusUpper;
+      }
     }
     if (query.provider) {
       where.provider = query.provider.toUpperCase();
@@ -189,28 +245,52 @@ export class ReportingService {
       }),
     ]);
 
-    const data = payments.map((p) => ({
-      id: p.id,
-      amount: Number(p.amount),
-      currency: p.currency,
-      provider: p.provider,
-      status: p.status,
-      providerReference: p.providerReference,
-      createdAt: p.createdAt,
-      mentee: {
-        id: p.user.id,
-        email: p.user.email,
-        name: p.user.menteeProfile?.fullName || p.user.email.split('@')[0],
-      },
-      mentor: p.mentorship?.mentor
-        ? {
-            id: p.mentorship.mentor.id,
-            name: p.mentorship.mentor.fullName,
-            email: p.mentorship.mentor.user.email,
-          }
-        : null,
-      planTitle: p.mentorship?.plan?.title || 'Mentorship Plan',
-    }));
+    const data = payments.map((p) => {
+      const amount = Number(p.amount);
+      const platformFee = Math.round((amount * commissionPercent) / 100);
+      const mentorEarnings = amount - platformFee;
+      const menteeName =
+        p.user.menteeProfile?.fullName || p.user.email.split('@')[0];
+      const mentorName = p.mentorship?.mentor?.fullName || 'General Mentor';
+      const planTitle = p.mentorship?.plan?.title || 'Mentorship Plan';
+
+      return {
+        id: p.id,
+        amount,
+        currency: p.currency,
+        provider: p.provider,
+        status: p.status,
+        providerReference: p.providerReference,
+        providerTxId: p.providerReference || p.id,
+        platformFee,
+        mentorEarnings,
+        createdAt: p.createdAt,
+        mentee: {
+          id: p.user.id,
+          email: p.user.email,
+          name: menteeName,
+        },
+        user: {
+          id: p.user.id,
+          email: p.user.email,
+          name: menteeName,
+        },
+        mentor: p.mentorship?.mentor
+          ? {
+              id: p.mentorship.mentor.id,
+              name: mentorName,
+              fullName: mentorName,
+              email: p.mentorship.mentor.user.email,
+            }
+          : null,
+        mentorship: {
+          id: p.mentorship?.id || '',
+          mentorName,
+          planTitle,
+        },
+        planTitle,
+      };
+    });
 
     return {
       data,

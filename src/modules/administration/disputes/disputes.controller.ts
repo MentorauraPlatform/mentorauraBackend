@@ -17,6 +17,7 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles, Role } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { IsEnum, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
 import {
   DisputesService,
   CreateDisputeDto,
@@ -24,17 +25,37 @@ import {
 } from './disputes.service';
 
 class CreateDisputeBodyDto implements CreateDisputeDto {
+  @IsString()
   title!: string;
+
+  @IsString()
   description!: string;
+
+  @IsEnum(DisputeReason)
   reason!: DisputeReason;
+
+  @IsOptional()
+  @IsUUID()
   bookingId?: string;
+
+  @IsOptional()
+  @IsUUID()
   mentorshipId?: string;
+
+  @IsOptional()
+  @IsUUID()
   targetUserId?: string;
 }
 
 class ResolveDisputeBodyDto implements ResolveDisputeDto {
+  @IsEnum(DisputeStatus)
   status!: DisputeStatus;
+
+  @IsString()
   resolutionNotes!: string;
+
+  @IsOptional()
+  @IsNumber()
   refundAmount?: number;
 }
 

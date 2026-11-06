@@ -20,7 +20,7 @@ interface RequestWithRawBody extends Request {
 }
 
 @ApiTags('Payments - Webhooks')
-@Controller('payments/webhooks')
+@Controller({ path: 'payments/webhooks', version: '1' })
 export class WebhooksController {
   private readonly logger = new Logger(WebhooksController.name);
 
@@ -82,12 +82,7 @@ export class WebhooksController {
     @Headers('x-zo-timestamp') timestamp?: string,
     @Headers('x-zo-delivery-id') deliveryId?: string,
   ) {
-    if (provider.toLowerCase() === 'zopay' || provider.toLowerCase() === 'momo' || provider.toLowerCase() === 'om') {
-      return this.handleZoPayWebhook(req, signature, timestamp, deliveryId);
-    }
-
     this.logger.log(`Received webhook for provider ${provider}`);
-    const payload = req.body as ZoPayWebhookEvent;
-    return this.webhooksService.handleZoPayWebhook(payload, deliveryId);
+    return this.handleZoPayWebhook(req, signature, timestamp, deliveryId);
   }
 }

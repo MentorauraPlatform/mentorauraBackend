@@ -22,7 +22,7 @@ import { InitiatePaymentDto } from './dto/initiate-payment.dto';
 
 @ApiTags('Payments - Checkout')
 @ApiBearerAuth('access-token')
-@Controller('payments')
+@Controller({ path: 'payments', version: '1' })
 export class CheckoutController {
   constructor(private readonly checkoutService: CheckoutService) {}
 

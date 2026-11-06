@@ -60,7 +60,7 @@ export class LifecycleController {
     @CurrentUser() user: CurrentUserPayload,
     @Param('id') id: string,
   ) {
-    const role = user.role === 'mentor' ? 'mentor' : 'mentee';
+    const role = user.role?.toLowerCase() === 'mentor' ? 'mentor' : 'mentee';
     return this.lifecycleService.getMentorship(id, user.userId, role);
   }
 
@@ -75,7 +75,7 @@ export class LifecycleController {
     @Param('id') id: string,
     @Body() _dto?: ActivateMentorshipDto,
   ) {
-    const role = user.role === 'mentor' ? 'mentor' : 'mentee';
+    const role = user.role?.toLowerCase() === 'mentor' ? 'mentor' : 'mentee';
     return this.lifecycleService.activateMentorship(id, user.userId, role);
   }
 
@@ -89,7 +89,7 @@ export class LifecycleController {
     @Param('id') id: string,
     @Body() _dto?: CompleteMentorshipDto,
   ) {
-    const role = user.role === 'mentor' ? 'mentor' : 'mentee';
+    const role = user.role?.toLowerCase() === 'mentor' ? 'mentor' : 'mentee';
     return this.lifecycleService.completeMentorship(id, user.userId, role);
   }
 
@@ -103,7 +103,7 @@ export class LifecycleController {
     @Param('id') id: string,
     @Body() dto?: CancelMentorshipDto,
   ) {
-    const role = user.role === 'mentor' ? 'mentor' : 'mentee';
+    const role = user.role?.toLowerCase() === 'mentor' ? 'mentor' : 'mentee';
     return this.lifecycleService.cancelMentorship(
       id,
       user.userId,

@@ -145,7 +145,7 @@ export class AdminMentorsService {
 
       await tx.user.update({
         where: { id: mentor.userId },
-        data: { isMentor: true },
+        data: { isMentor: true, role: 'MENTOR' },
       });
 
       await tx.adminAuditLog.create({

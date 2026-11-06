@@ -317,6 +317,18 @@ export class ModerationService {
           if (rev) userIdToSuspend = rev.reviewerId;
         }
 
+        if (userIdToSuspend === adminId) {
+          throw new BadRequestException('Admins cannot suspend their own account');
+        }
+
+        const targetUser = await tx.user.findUnique({
+          where: { id: userIdToSuspend },
+          select: { role: true },
+        });
+        if (targetUser?.role === 'SUPER_ADMIN') {
+          throw new BadRequestException('Cannot suspend a SUPER_ADMIN account');
+        }
+
         await tx.user.updateMany({
           where: { id: userIdToSuspend },
           data: { isActive: false },

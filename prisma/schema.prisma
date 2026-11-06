@@ -109,6 +109,19 @@ enum ModerationStatus {
   DISMISSED
 }
 
+enum NotificationType {
+  MESSAGE
+  BOOKING_CONFIRMED
+  BOOKING_CANCELLED
+  BOOKING_COMPLETED
+  BOOKING_NO_SHOW
+  BOOKING_REMINDER
+  PAYMENT_RECEIVED
+  PAYOUT_PROCESSED
+  DISPUTE_UPDATE
+  SYSTEM
+}
+
 model Skill {
   id        String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name      String     @unique @db.VarChar(255)
@@ -172,6 +185,7 @@ model User {
   raisedDisputes              Dispute[]      @relation("RaisedDisputes")
   targetDisputes              Dispute[]      @relation("TargetDisputes")
   moderationReports           ModerationReport[] @relation("UserReports")
+  notifications               Notification[]
 
   @@index([email], map: "idx_users_email")
   @@map("users")
@@ -364,6 +378,8 @@ model Booking {
   status            BookingStatus @default(SCHEDULED)
   meetingLink       String?       @map("meeting_link") @db.VarChar(512)
   cancellationReason String?     @map("cancellation_reason") @db.Text
+  cancelledBy       String?       @map("cancelled_by") @db.VarChar(32)
+  cancelledAt       DateTime?     @map("cancelled_at") @db.Timestamptz(6)
   createdAt         DateTime      @default(now()) @map("created_at") @db.Timestamptz(6)
   updatedAt         DateTime      @default(now()) @map("updated_at") @db.Timestamptz(6)
 
@@ -374,7 +390,6 @@ model Booking {
 
   @@index([mentorId, scheduledAt], map: "idx_bookings_mentor_scheduled")
   @@index([mentorshipId], map: "idx_bookings_mentorship")
-  @@unique([mentorId, scheduledAt], map: "unique_mentor_slot")
   @@map("bookings")
 }
 
@@ -457,6 +472,7 @@ model Message {
 
   conversation   Conversation @relation(fields: [conversationId], references: [id], onDelete: Cascade)
   sender         User         @relation("UserMessages", fields: [senderId], references: [id], onDelete: Cascade)
+  attachments    MessageAttachment[]
 
   @@index([conversationId, createdAt])
   @@index([senderId])
@@ -541,3 +557,36 @@ model PlatformSetting {
 
   @@map("platform_settings")
 }
+
+model MessageAttachment {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  messageId String?  @map("message_id") @db.Uuid
+  fileName  String   @map("file_name") @db.VarChar(255)
+  fileUrl   String   @map("file_url") @db.VarChar(512)
+  fileType  String   @map("file_type") @db.VarChar(100)
+  fileSize  Int      @map("file_size")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  message   Message? @relation(fields: [messageId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@map("message_attachments")
+}
+
+model Notification {
+  id        String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String           @map("user_id") @db.Uuid
+  type      NotificationType @default(SYSTEM)
+  title     String           @db.VarChar(255)
+  message   String           @db.Text
+  data      Json?
+  isRead    Boolean          @default(false) @map("is_read")
+  createdAt DateTime         @default(now()) @map("created_at") @db.Timestamptz(6)
+
+  user      User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, isRead])
+  @@index([userId, createdAt])
+  @@map("notifications")
+}
+

@@ -1,5 +1,6 @@
 import { Controller, Get, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import { IsISO8601, IsOptional, IsString } from 'class-validator';
 import { BlackoutDatesService } from './blackouts.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
@@ -7,6 +8,15 @@ import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '../../../common/decorators/roles.decorator';
+
+class CreateBlackoutBodyDto {
+  @IsISO8601()
+  date!: string;
+
+  @IsOptional()
+  @IsString()
+  reason?: string;
+}
 
 @ApiTags('Scheduling Blackouts')
 @Controller({ path: 'mentor/blackouts', version: '1' })
@@ -38,7 +48,7 @@ export class BlackoutsController {
     },
   })
   @ApiResponse({ status: 201, description: 'Blackout date created' })
-  create(@CurrentUser() user: CurrentUserPayload, @Body() body: { date: string; reason?: string }) {
+  create(@CurrentUser() user: CurrentUserPayload, @Body() body: CreateBlackoutBodyDto) {
     return this.blackoutDatesService.create(user.userId, body.date, body.reason);
   }
 

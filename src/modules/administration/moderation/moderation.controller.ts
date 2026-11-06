@@ -16,6 +16,7 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles, Role } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { IsEnum, IsIn, IsOptional, IsString, IsUUID } from 'class-validator';
 import {
   ModerationService,
   CreateReportDto,
@@ -23,14 +24,26 @@ import {
 } from './moderation.service';
 
 class CreateReportBodyDto implements CreateReportDto {
+  @IsEnum(ModerationTargetType)
   targetType!: ModerationTargetType;
+
+  @IsUUID()
   targetId!: string;
+
+  @IsString()
   reason!: string;
+
+  @IsOptional()
+  @IsString()
   details?: string;
 }
 
 class ModerationActionBodyDto implements ModerationActionDto {
+  @IsIn(['DELETE_CONTENT', 'SUSPEND_USER', 'DISMISS', 'WARN_USER'])
   action!: 'DELETE_CONTENT' | 'SUSPEND_USER' | 'DISMISS' | 'WARN_USER';
+
+  @IsOptional()
+  @IsString()
   notes?: string;
 }
 

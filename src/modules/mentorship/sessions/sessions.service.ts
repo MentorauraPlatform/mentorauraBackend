@@ -41,7 +41,7 @@ export class SessionsService {
       throw new NotFoundException('Mentorship not found');
     }
 
-    const sessions = await this.prisma.session.findMany({
+    const sessions = await this.prisma.booking.findMany({
       where: { mentorshipId },
       orderBy: { scheduledAt: 'desc' },
       select: {

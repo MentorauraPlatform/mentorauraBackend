@@ -17,19 +17,30 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles, Role } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
+import { IsObject, IsOptional, IsString } from 'class-validator';
 import { ConfigurationService } from './configuration.service';
 
 class UpdateSettingsBodyDto {
+  @IsObject()
   settings!: Record<string, string>;
 }
 
 class CreateCategoryBodyDto {
+  @IsString()
   name!: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
 }
 
 class UpdateCategoryBodyDto {
+  @IsOptional()
+  @IsString()
   name?: string;
+
+  @IsOptional()
+  @IsString()
   description?: string;
 }
 

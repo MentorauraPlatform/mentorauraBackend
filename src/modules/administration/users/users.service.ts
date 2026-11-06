@@ -130,6 +130,15 @@ export class AdminUsersService {
     if (!target) {
       throw new NotFoundException(`User '${targetUserId}' not found`);
     }
+    if (target.role === UserRole.SUPER_ADMIN) {
+      const caller = await this.prisma.user.findUnique({
+        where: { id: callerId },
+        select: { role: true },
+      });
+      if (caller?.role !== UserRole.SUPER_ADMIN) {
+        throw new ForbiddenException('Only a SUPER_ADMIN can modify another SUPER_ADMIN account');
+      }
+    }
 
     const updated = await this.prisma.user.update({
       where: { id: targetUserId },

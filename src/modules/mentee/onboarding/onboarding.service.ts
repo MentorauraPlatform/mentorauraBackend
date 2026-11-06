@@ -26,13 +26,29 @@ export class OnboardingService {
     return profile;
   }
 
+  private readonly safeUserInclude = {
+    user: {
+      select: {
+        id: true,
+        email: true,
+        role: true,
+        isMentor: true,
+        isActive: true,
+        isEmailVerified: true,
+        createdAt: true,
+        updatedAt: true,
+        userSkills: { include: { skill: true } },
+      },
+    },
+  };
+
   async createProfile(userId: string, dto: CreateMenteeProfileDto) {
     const existing = await this.prisma.menteeProfile.findUnique({ where: { userId } });
     if (existing) throw new ConflictException('Mentee profile already exists');
 
     const profile = await this.prisma.menteeProfile.create({
       data: { userId, fullName: dto.fullName, avatarUrl: dto.avatarUrl, headline: dto.headline },
-      include: { user: { include: { userSkills: { include: { skill: true } } } } },
+      include: this.safeUserInclude,
     });
     return { data: profile };
   }
@@ -40,7 +56,7 @@ export class OnboardingService {
   async getMyProfile(userId: string) {
     const profile = await this.prisma.menteeProfile.findUnique({
       where: { userId },
-      include: { user: { include: { userSkills: { include: { skill: true } } } } },
+      include: this.safeUserInclude,
     });
     if (!profile) throw new NotFoundException('Mentee profile not found');
     return { data: profile };
@@ -51,7 +67,7 @@ export class OnboardingService {
     const profile = await this.prisma.menteeProfile.update({
       where: { userId },
       data: dto,
-      include: { user: { include: { userSkills: { include: { skill: true } } } } },
+      include: this.safeUserInclude,
     });
     return { data: profile };
   }
@@ -152,11 +168,12 @@ export class OnboardingService {
   async submitOnboarding(userId: string, dto: SubmitOnboardingDto) {
     const profile = await this.getProfileOrThrow(userId);
 
-    if (profile.onboardingCompleted) {
-      throw new BadRequestException('Onboarding already complete');
-    }
     if (!dto.confirmed) {
       throw new BadRequestException('You must confirm before submitting');
+    }
+
+    if (profile.onboardingCompleted) {
+      return { data: profile, message: 'Onboarding completed successfully' };
     }
 
     const updated = await this.prisma.menteeProfile.update({

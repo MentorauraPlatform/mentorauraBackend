@@ -1,7 +1,10 @@
 import { Module } from '@nestjs/common';
+import { BalanceController } from './balance.controller';
+import { AdminPayoutsModule } from '../../administration/payouts/payouts.module';
 
 @Module({
-  controllers: [],
+  imports: [AdminPayoutsModule],
+  controllers: [BalanceController],
   providers: [],
   exports: [],
 })
