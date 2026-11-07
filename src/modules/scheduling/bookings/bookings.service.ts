@@ -314,12 +314,22 @@ export class BookingsService {
   async findMenteeBookings(menteeId: string) {
     const bookings = await this.prisma.booking.findMany({
       where: { menteeId },
-      orderBy: { scheduledAt: 'desc' },
+      orderBy: { scheduledAt: 'asc' },
       include: {
         mentorship: {
           include: {
             plan: { select: { id: true, title: true, priceAmount: true, currency: true } },
-            mentor: { select: { id: true, fullName: true, title: true } },
+            mentor: {
+              select: {
+                id: true,
+                fullName: true,
+                title: true,
+                headline: true,
+                company: true,
+                slug: true,
+                user: { select: { avatarUrl: true } },
+              },
+            },
           },
         },
       },
@@ -340,9 +350,15 @@ export class BookingsService {
 
     const bookings = await this.prisma.booking.findMany({
       where: { mentorId: mentor.id },
-      orderBy: { scheduledAt: 'desc' },
+      orderBy: { scheduledAt: 'asc' },
       include: {
-        mentee: { select: { id: true, email: true } },
+        mentee: {
+          select: {
+            id: true,
+            email: true,
+            menteeProfile: { select: { fullName: true, avatarUrl: true } },
+          },
+        },
         mentorship: {
           include: {
             plan: { select: { id: true, title: true, priceAmount: true, currency: true } },
