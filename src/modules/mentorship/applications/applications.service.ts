@@ -53,19 +53,30 @@ export class ApplicationsService {
       throw new BadRequestException('Mentor is not available for applications');
     }
 
-    const pendingApp: MentorshipApplication | null =
+    const existingApp: MentorshipApplication | null =
       await this.prisma.mentorshipApplication.findFirst({
         where: {
           menteeId,
           mentorId: plan.mentorId,
-          status: MentorshipApplicationStatus.PENDING,
+          status: {
+            in: [
+              MentorshipApplicationStatus.PENDING,
+              MentorshipApplicationStatus.ACCEPTED,
+            ],
+          },
         },
       });
 
-    if (pendingApp) {
-      throw new ConflictException(
-        'You already have a pending application with this mentor.',
-      );
+    if (existingApp) {
+      if (existingApp.status === MentorshipApplicationStatus.PENDING) {
+        throw new ConflictException(
+          'You already have a pending application with this mentor.',
+        );
+      } else {
+        throw new ConflictException(
+          'You already have an accepted mentorship application with this mentor.',
+        );
+      }
     }
 
     const existingMentorship = await this.prisma.mentorship.findFirst({

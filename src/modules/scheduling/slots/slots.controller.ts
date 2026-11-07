@@ -9,7 +9,7 @@ import { Roles } from '../../../common/decorators/roles.decorator';
 import { Role } from '../../../common/decorators/roles.decorator';
 
 @ApiTags('Scheduling Slots')
-@Controller({ path: 'mentors', version: '1' })
+@Controller({ path: ['mentors', 'scheduling/mentors'], version: '1' })
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class SlotsController {
   constructor(private readonly slotsService: SlotsService) {}

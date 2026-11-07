@@ -60,9 +60,12 @@ export class SlotsService {
   constructor(private readonly prisma: PrismaService) {}
 
   async generateSlots(mentorId: string, from: string, to: string, timezone: string) {
-    const mentor = await this.prisma.mentorProfile.findUnique({
-      where: { id: mentorId },
-      select: { id: true, availability: true, onboardingStatus: true, isVerified: true },
+    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(mentorId);
+    const mentor = await this.prisma.mentorProfile.findFirst({
+      where: {
+        OR: isUuid ? [{ id: mentorId }, { userId: mentorId }] : [{ slug: mentorId }],
+      },
+      select: { id: true, userId: true, availability: true, onboardingStatus: true, isVerified: true },
     });
 
     if (!mentor) {
@@ -92,6 +95,8 @@ export class SlotsService {
     if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime()) || toDate < fromDate) {
       throw new BadRequestException('Invalid date range');
     }
+    // Include full final day
+    toDate.setUTCHours(23, 59, 59, 999);
 
     const maxWindowMs = 62 * 24 * 60 * 60 * 1000;
     if (toDate.getTime() - fromDate.getTime() > maxWindowMs) {
@@ -160,24 +165,27 @@ export class SlotsService {
     }
 
     if (slots.length > 0) {
-      const minSlotTime = new Date(new Date(slots[0].slotUtc).getTime() - 3 * 60 * 60 * 1000);
-      const maxSlotTime = new Date(new Date(slots[slots.length - 1].slotUtc).getTime() + 3 * 60 * 60 * 1000);
+      const queryStart = new Date(fromDate.getTime() - 24 * 60 * 60 * 1000);
+      const queryEnd = new Date(toDate.getTime() + 24 * 60 * 60 * 1000);
 
       const existingBookings = await this.prisma.booking.findMany({
         where: {
-          mentorId,
-          status: { in: [BookingStatus.SCHEDULED] },
-          scheduledAt: { gte: minSlotTime, lte: maxSlotTime },
+          OR: [
+            { mentorId: mentor.id },
+            { mentorId: mentor.userId },
+          ],
+          status: { notIn: [BookingStatus.CANCELLED] },
+          scheduledAt: { gte: queryStart, lte: queryEnd },
         },
         select: { scheduledAt: true, durationMinutes: true },
       });
 
       const blackouts = await this.prisma.blackoutDate.findMany({
         where: {
-          mentorProfileId: mentorId,
+          mentorProfileId: mentor.id,
           date: {
-            gte: new Date(fromDate.getTime() - 24 * 60 * 60 * 1000),
-            lte: new Date(toDate.getTime() + 24 * 60 * 60 * 1000),
+            gte: queryStart,
+            lte: queryEnd,
           },
         },
         select: { date: true },

@@ -183,13 +183,16 @@ export class BookingsService {
         // Acquire row lock on mentor profile to serialize concurrent booking attempts for the same mentor
         await tx.$queryRaw`SELECT id FROM mentor_profiles WHERE id = ${mentorship.mentorId}::uuid FOR UPDATE`;
 
-        // Check for overlapping SCHEDULED bookings within +/- 4 hours
+        // Check for overlapping non-cancelled bookings within +/- 4 hours
         const windowStart = new Date(scheduledAt.getTime() - 4 * 60 * 60 * 1000);
         const windowEnd = new Date(scheduledAt.getTime() + (durationMinutes + 240) * 60 * 1000);
         const nearbyScheduled = await tx.booking.findMany({
           where: {
-            mentorId: mentorship.mentorId,
-            status: BookingStatus.SCHEDULED,
+            OR: [
+              { mentorId: mentorship.mentorId },
+              { mentorId: mentorship.mentor.userId },
+            ],
+            status: { notIn: [BookingStatus.CANCELLED] },
             scheduledAt: { gte: windowStart, lte: windowEnd },
           },
           select: { id: true, scheduledAt: true, durationMinutes: true },
@@ -204,7 +207,26 @@ export class BookingsService {
         });
 
         if (hasConflict) {
-          throw new ConflictException('This time slot overlaps with an existing booking for this mentor');
+          throw new ConflictException('This time slot has already been booked for this mentor. Please select another slot.');
+        }
+
+        const menteeOverlap = await tx.booking.findMany({
+          where: {
+            menteeId,
+            status: { notIn: [BookingStatus.CANCELLED] },
+            scheduledAt: { gte: windowStart, lte: windowEnd },
+          },
+          select: { id: true, scheduledAt: true, durationMinutes: true },
+        });
+
+        const hasMenteeConflict = menteeOverlap.some((b) => {
+          const bStart = b.scheduledAt.getTime();
+          const bEnd = bStart + (b.durationMinutes || 60) * 60 * 1000;
+          return bStart < reqEndMs && bEnd > reqStartMs;
+        });
+
+        if (hasMenteeConflict) {
+          throw new ConflictException('You already have another session booked at this time.');
         }
 
         if (mentorship.status === 'INTRO') {
