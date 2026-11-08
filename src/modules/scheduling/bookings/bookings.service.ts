@@ -349,7 +349,7 @@ export class BookingsService {
                 headline: true,
                 company: true,
                 slug: true,
-                user: { select: { avatarUrl: true } },
+                user: { select: { id: true, email: true } },
               },
             },
           },
