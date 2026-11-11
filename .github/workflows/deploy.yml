@@ -1,0 +1,152 @@
+name: CD — Deploy Backend to VPS
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: mentorauraplatform/mentoraura-backend
+
+jobs:
+  # ────────────────────────────────────────────────────────────────────────────
+  # 1. CI Validation (Lint & Tests)
+  # ────────────────────────────────────────────────────────────────────────────
+  validate:
+    name: Validate Code Quality & Tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma Client
+        run: npx prisma generate
+
+      - name: Lint check
+        run: npm run lint
+
+      - name: TypeScript type check
+        run: npx tsc --noEmit
+
+      - name: Run unit tests
+        run: npm run test
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 2. Build & Push Docker Image to GHCR
+  # ────────────────────────────────────────────────────────────────────────────
+  build-and-push:
+    name: Build & Push Docker Image
+    runs-on: ubuntu-latest
+    needs: validate
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata (tags, labels)
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          tags: |
+            type=raw,value=latest,enable=true
+            type=sha,format=short,prefix=sha-
+            type=ref,event=branch
+
+      - name: Build and push backend Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 3. Deploy to Production VPS via SSH
+  # ────────────────────────────────────────────────────────────────────────────
+  deploy:
+    name: Deploy to Production VPS
+    runs-on: ubuntu-latest
+    needs: build-and-push
+
+    steps:
+      - name: Execute remote deployment commands
+        uses: appleboy/ssh-action@v1.0.3
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USERNAME }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          port: ${{ secrets.VPS_PORT || 22 }}
+          script_stop: true
+          script: |
+            set -euo pipefail
+            APP_DIR="/opt/mentoraura"
+
+            echo "📦 Logging into GitHub Container Registry..."
+            echo "${{ secrets.GHCR_TOKEN || secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+            cd "$APP_DIR"
+
+            echo "📥 Pulling newest backend image..."
+            docker compose pull backend
+
+            echo "🔄 Running Prisma database migrations..."
+            docker compose run --rm backend npx prisma migrate deploy
+
+            echo "🚀 Restarting backend service with zero downtime..."
+            docker compose up -d --no-deps backend
+
+            echo "🩺 Verifying backend health..."
+            sleep 8
+            RETRIES=15
+            COUNT=0
+            until curl -sf http://127.0.0.1:4000/api/v1/health > /dev/null || [ $COUNT -eq $RETRIES ]; do
+              echo "Waiting for backend healthcheck... ($((COUNT+1))/$RETRIES)"
+              sleep 3
+              COUNT=$((COUNT+1))
+            done
+
+            if [ $COUNT -eq $RETRIES ]; then
+              echo "❌ Backend healthcheck failed after deployment!"
+              docker compose logs --tail 50 backend
+              exit 1
+            fi
+
+            echo "🧹 Pruning old dangling images..."
+            docker image prune -f
+
+            echo "✅ Backend successfully deployed to production!"

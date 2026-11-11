@@ -1,0 +1,17 @@
+node_modules
+npm-debug.log*
+dist
+.git
+.gitignore
+.github
+.agents
+.claude
+.windsurf
+coverage
+test
+.env
+.env.*
+!.env.example
+uploads/*
+!uploads/.gitkeep
+*.md
