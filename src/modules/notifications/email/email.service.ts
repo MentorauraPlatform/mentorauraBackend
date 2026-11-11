@@ -10,14 +10,12 @@ export class EmailService {
   constructor(private readonly configService: ConfigService) {
     const host = this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com');
     const port = Number(this.configService.get<number>('SMTP_PORT', 587));
-    const user = this.configService.get<string>(
-      'SMTP_USER',
-      'edulinkcameroon@gmail.com',
-    );
-    const pass = this.configService.get<string>(
-      'SMTP_PASS',
-      'kdqj rerm qhji zitd',
-    );
+    const user =
+      this.configService.get<string>('EMAIL_HOST_USER') ||
+      this.configService.get<string>('SMTP_USER', 'nebcode26@gmail.com');
+    const pass =
+      this.configService.get<string>('EMAIL_HOST_PASSWORD') ||
+      this.configService.get<string>('SMTP_PASS', 'ynvo gdsy tsbq gwir');
 
     this.transporter = nodemailer.createTransport({
       host,
@@ -77,7 +75,7 @@ export class EmailService {
     const chatUrl = `${frontendUrl}/dashboard/messages?conversationId=${conversationId}`;
     const from = this.configService.get<string>(
       'EMAIL_FROM',
-      '"MentorAura" <edulinkcameroon@gmail.com>',
+      'Nebcode <nebcode26@gmail.com>',
     );
 
     const safePreview =
@@ -122,7 +120,7 @@ export class EmailService {
   ): Promise<boolean> {
     const from = this.configService.get<string>(
       'EMAIL_FROM',
-      '"MentorAura" <edulinkcameroon@gmail.com>',
+      'Nebcode <nebcode26@gmail.com>',
     );
 
     const formattedDate = scheduledAt.toUTCString();
@@ -164,7 +162,7 @@ export class EmailService {
   ): Promise<boolean> {
     const from = this.configService.get<string>(
       'EMAIL_FROM',
-      '"MentorAura" <edulinkcameroon@gmail.com>',
+      'Nebcode <nebcode26@gmail.com>',
     );
 
     const content = `

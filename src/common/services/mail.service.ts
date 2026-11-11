@@ -10,14 +10,12 @@ export class MailService {
   constructor(private readonly configService: ConfigService) {
     const host = this.configService.get<string>('SMTP_HOST', 'smtp.gmail.com');
     const port = Number(this.configService.get<number>('SMTP_PORT', 587));
-    const user = this.configService.get<string>(
-      'SMTP_USER',
-      'edulinkcameroon@gmail.com',
-    );
-    const pass = this.configService.get<string>(
-      'SMTP_PASS',
-      'kdqj rerm qhji zitd',
-    );
+    const user =
+      this.configService.get<string>('EMAIL_HOST_USER') ||
+      this.configService.get<string>('SMTP_USER', 'nebcode26@gmail.com');
+    const pass =
+      this.configService.get<string>('EMAIL_HOST_PASSWORD') ||
+      this.configService.get<string>('SMTP_PASS', 'ynvo gdsy tsbq gwir');
 
     this.transporter = nodemailer.createTransport({
       host,
@@ -48,7 +46,7 @@ export class MailService {
     const verificationUrl = `${frontendUrl}/verify-email?token=${token}`;
     const from = this.configService.get<string>(
       'EMAIL_FROM',
-      '"MentorAura" <edulinkcameroon@gmail.com>',
+      'Nebcode <nebcode26@gmail.com>',
     );
 
     const htmlContent = `
@@ -116,7 +114,7 @@ export class MailService {
     );
     const from = this.configService.get<string>(
       'EMAIL_FROM',
-      '"MentorAura" <edulinkcameroon@gmail.com>',
+      'Nebcode <nebcode26@gmail.com>',
     );
 
     const htmlContent = `
@@ -185,7 +183,7 @@ export class MailService {
     const inviteUrl = `${frontendUrl}/auth/admin/accept-invite?token=${token}`;
     const from = this.configService.get<string>(
       'EMAIL_FROM',
-      '"MentorAura" <edulinkcameroon@gmail.com>',
+      'Nebcode <nebcode26@gmail.com>',
     );
 
     const htmlContent = `
@@ -253,7 +251,7 @@ export class MailService {
     const loginUrl = `${frontendUrl}/auth?mode=login`;
     const from = this.configService.get<string>(
       'EMAIL_FROM',
-      '"MentorAura" <edulinkcameroon@gmail.com>',
+      'Nebcode <nebcode26@gmail.com>',
     );
 
     const htmlContent = `
@@ -320,7 +318,7 @@ export class MailService {
     );
     const from = this.configService.get<string>(
       'EMAIL_FROM',
-      '"MentorAura" <edulinkcameroon@gmail.com>',
+      'Nebcode <nebcode26@gmail.com>',
     );
 
     const htmlContent = `
