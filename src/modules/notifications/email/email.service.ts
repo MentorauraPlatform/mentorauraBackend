@@ -29,7 +29,7 @@ export class EmailService {
   private getBaseEmail(content: string): string {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'http://localhost:3000',
+      'https://mentoraura.com',
     );
     return `
       <!DOCTYPE html>
@@ -70,7 +70,7 @@ export class EmailService {
   ): Promise<boolean> {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'http://localhost:3000',
+      'https://mentoraura.com',
     );
     const chatUrl = `${frontendUrl}/dashboard/messages?conversationId=${conversationId}`;
     const from = this.configService.get<string>(

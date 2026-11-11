@@ -41,7 +41,7 @@ export class MailService {
   ): Promise<boolean> {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'http://localhost:3000',
+      'https://mentoraura.com',
     );
     const verificationUrl = `${frontendUrl}/verify-email?token=${token}`;
     const from = this.configService.get<string>(
@@ -110,7 +110,7 @@ export class MailService {
   ): Promise<boolean> {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'http://localhost:3000',
+      'https://mentoraura.com',
     );
     const from = this.configService.get<string>(
       'EMAIL_FROM',
@@ -178,7 +178,7 @@ export class MailService {
   ): Promise<boolean> {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'http://localhost:3000',
+      'https://mentoraura.com',
     );
     const inviteUrl = `${frontendUrl}/auth/admin/accept-invite?token=${token}`;
     const from = this.configService.get<string>(
@@ -246,7 +246,7 @@ export class MailService {
   ): Promise<boolean> {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'http://localhost:3000',
+      'https://mentoraura.com',
     );
     const loginUrl = `${frontendUrl}/auth?mode=login`;
     const from = this.configService.get<string>(
@@ -314,7 +314,7 @@ export class MailService {
   ): Promise<boolean> {
     const frontendUrl = this.configService.get<string>(
       'FRONTEND_URL',
-      'http://localhost:3000',
+      'https://mentoraura.com',
     );
     const from = this.configService.get<string>(
       'EMAIL_FROM',
