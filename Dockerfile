@@ -31,11 +31,8 @@ COPY prisma ./prisma
 COPY src ./src
 COPY scripts ./scripts
 
-# Build NestJS application
-RUN npm run build
-
-# Prune devDependencies to keep image lean
-RUN npm prune --omit=dev
+# Build NestJS application and ensure Prisma Client is generated
+RUN npm run build && npx prisma generate
 
 # Stage 3: Production Runner
 FROM node:20-alpine AS runner
