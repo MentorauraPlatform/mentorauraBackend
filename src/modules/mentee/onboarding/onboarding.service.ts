@@ -82,12 +82,60 @@ export class OnboardingService {
   }
 
   async updateGoals(userId: string, dto: UpdateGoalsDto) {
-    await this.getProfileOrThrow(userId);
+    const existing = await this.getProfileOrThrow(userId);
+    // Keep only completedGoals that still exist in the updated goals
+    const filteredCompleted = (existing.completedGoals || []).filter((g) =>
+      dto.goals.includes(g),
+    );
     const profile = await this.prisma.menteeProfile.update({
       where: { userId },
-      data: { goals: dto.goals },
+      data: {
+        goals: dto.goals,
+        completedGoals: filteredCompleted,
+      },
     });
     return { data: profile };
+  }
+
+  async toggleGoal(userId: string, goal: string) {
+    const profile = await this.getProfileOrThrow(userId);
+    const trimmedGoal = (goal || '').trim();
+    if (!trimmedGoal) {
+      throw new BadRequestException('Goal is required');
+    }
+
+    const currentCompleted = profile.completedGoals || [];
+    const isCompleted = currentCompleted.includes(trimmedGoal);
+    const nextCompleted = isCompleted
+      ? currentCompleted.filter((g) => g !== trimmedGoal)
+      : [...currentCompleted, trimmedGoal];
+
+    const updated = await this.prisma.menteeProfile.update({
+      where: { userId },
+      data: { completedGoals: nextCompleted },
+    });
+
+    return {
+      message: isCompleted ? 'Goal marked as in-progress' : 'Goal marked as completed',
+      data: updated,
+    };
+  }
+
+  async updateCompletedGoals(userId: string, completedGoals: string[]) {
+    await this.getProfileOrThrow(userId);
+    const cleaned = (completedGoals || [])
+      .map((g) => (typeof g === 'string' ? g.trim() : ''))
+      .filter(Boolean);
+
+    const updated = await this.prisma.menteeProfile.update({
+      where: { userId },
+      data: { completedGoals: cleaned },
+    });
+
+    return {
+      message: 'Completed goals updated successfully',
+      data: updated,
+    };
   }
 
   async updateExperience(userId: string, dto: UpdateExperienceDto) {

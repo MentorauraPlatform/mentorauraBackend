@@ -60,6 +60,18 @@ export class BookingsController {
     return this.bookingsService.findMenteeBookings(user.userId);
   }
 
+  @Get('quota/:mentorshipId')
+  @Roles(Role.MENTEE, Role.MENTOR)
+  @ApiOperation({ summary: 'Get booking quota and remaining sessions for a mentorship' })
+  @ApiBearerAuth('access-token')
+  @ApiResponse({ status: 200, description: 'Quota retrieved' })
+  getBookingQuota(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('mentorshipId') mentorshipId: string,
+  ) {
+    return this.bookingsService.getBookingQuota(user.userId, mentorshipId);
+  }
+
   @Get(':id')
   @Roles(Role.MENTEE, Role.MENTOR)
   @ApiOperation({ summary: 'Get booking details' })
