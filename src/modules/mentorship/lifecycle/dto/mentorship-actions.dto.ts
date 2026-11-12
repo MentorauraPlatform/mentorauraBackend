@@ -1,4 +1,10 @@
-import { IsString, IsOptional } from 'class-validator';
+import { IsString, IsOptional, IsArray } from 'class-validator';
+
+export class UpdateMenteeGoalsDto {
+  @IsArray()
+  @IsString({ each: true })
+  goals: string[];
+}
 
 export class ActivateMentorshipDto {
   @IsString()

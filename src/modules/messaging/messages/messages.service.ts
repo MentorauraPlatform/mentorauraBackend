@@ -52,15 +52,6 @@ export class MessagesService {
    * Helper to verify if user is part of conversation and active
    */
   async validateMembership(userId: string, conversationId: string) {
-    const user = await this.prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, isActive: true },
-    });
-
-    if (!user || !user.isActive) {
-      throw new ForbiddenException('User account is suspended or inactive');
-    }
-
     const conv = await this.prisma.conversation.findUnique({
       where: { id: conversationId },
       include: {
@@ -68,6 +59,7 @@ export class MessagesService {
           select: {
             id: true,
             email: true,
+            isActive: true,
             mentorProfile: { select: { fullName: true } },
             menteeProfile: { select: { fullName: true } },
           },
@@ -76,6 +68,7 @@ export class MessagesService {
           select: {
             id: true,
             email: true,
+            isActive: true,
             mentorProfile: { select: { fullName: true } },
             menteeProfile: { select: { fullName: true } },
           },
@@ -91,6 +84,13 @@ export class MessagesService {
       throw new ForbiddenException(
         'You are not a participant in this conversation',
       );
+    }
+
+    const currentUser =
+      conv.participant1Id === userId ? conv.participant1 : conv.participant2;
+
+    if (!currentUser || !currentUser.isActive) {
+      throw new ForbiddenException('User account is suspended or inactive');
     }
 
     const recipient =
@@ -221,64 +221,103 @@ export class MessagesService {
 
     const messageContent = trimmed || (hasAttachments ? 'Sent an attachment' : '');
 
-    const [created] = await this.prisma.$transaction(async (tx) => {
-      const msg = await tx.message.create({
-        data: {
-          conversationId,
-          senderId: userId,
-          content: messageContent,
-          isRead: false,
-        },
-        include: {
-          sender: {
-            select: {
-              id: true,
-              email: true,
-              mentorProfile: { select: { fullName: true } },
-              menteeProfile: { select: { fullName: true, avatarUrl: true } },
+    let created: any;
+
+    if (!hasAttachments) {
+      // Fast path: pipelined batch transaction in a single roundtrip
+      const [msg] = await this.prisma.$transaction([
+        this.prisma.message.create({
+          data: {
+            conversationId,
+            senderId: userId,
+            content: messageContent,
+            isRead: false,
+          },
+          include: {
+            sender: {
+              select: {
+                id: true,
+                email: true,
+                mentorProfile: { select: { fullName: true } },
+                menteeProfile: { select: { fullName: true, avatarUrl: true } },
+              },
+            },
+            attachments: {
+              select: {
+                id: true,
+                fileName: true,
+                fileUrl: true,
+                fileType: true,
+                fileSize: true,
+              },
             },
           },
-        },
-      });
+        }),
+        this.prisma.conversation.update({
+          where: { id: conversationId },
+          data: { lastMessageAt: new Date() },
+        }),
+      ]);
+      created = msg;
+    } else {
+      // Attachment path
+      const [msg] = await this.prisma.$transaction(async (tx) => {
+        const createdMsg = await tx.message.create({
+          data: {
+            conversationId,
+            senderId: userId,
+            content: messageContent,
+            isRead: false,
+          },
+          include: {
+            sender: {
+              select: {
+                id: true,
+                email: true,
+                mentorProfile: { select: { fullName: true } },
+                menteeProfile: { select: { fullName: true, avatarUrl: true } },
+              },
+            },
+          },
+        });
 
-      if (hasAttachments) {
         await tx.messageAttachment.updateMany({
           where: { id: { in: attachmentIds }, messageId: null },
-          data: { messageId: msg.id },
+          data: { messageId: createdMsg.id },
         });
-      }
 
-      await tx.conversation.update({
-        where: { id: conversationId },
-        data: { lastMessageAt: new Date() },
-      });
+        await tx.conversation.update({
+          where: { id: conversationId },
+          data: { lastMessageAt: new Date() },
+        });
 
-      // Refetch with attachments populated
-      const fullMsg = await tx.message.findUnique({
-        where: { id: msg.id },
-        include: {
-          sender: {
-            select: {
-              id: true,
-              email: true,
-              mentorProfile: { select: { fullName: true } },
-              menteeProfile: { select: { fullName: true, avatarUrl: true } },
+        const fullMsg = await tx.message.findUnique({
+          where: { id: createdMsg.id },
+          include: {
+            sender: {
+              select: {
+                id: true,
+                email: true,
+                mentorProfile: { select: { fullName: true } },
+                menteeProfile: { select: { fullName: true, avatarUrl: true } },
+              },
+            },
+            attachments: {
+              select: {
+                id: true,
+                fileName: true,
+                fileUrl: true,
+                fileType: true,
+                fileSize: true,
+              },
             },
           },
-          attachments: {
-            select: {
-              id: true,
-              fileName: true,
-              fileUrl: true,
-              fileType: true,
-              fileSize: true,
-            },
-          },
-        },
-      });
+        });
 
-      return [fullMsg!];
-    });
+        return [fullMsg!];
+      });
+      created = msg;
+    }
 
     return {
       message: this.formatMessage(created),

@@ -371,26 +371,28 @@ export class MessagingGateway
       }
     }
 
-    // 5. If recipient is not active in this chat room, create an In-App notification
+    // 5. If recipient is not active in this chat room, create an In-App notification asynchronously (non-blocking)
     if (!isRecipientInConversation) {
-      try {
-        const notif = await this.inAppService.create({
-          userId: recipientId,
-          type: NotificationType.MESSAGE,
-          title: `New message from ${message.sender.name}`,
-          message:
-            message.content ||
-            (message.attachments.length > 0 ? 'Sent an attachment' : 'New message'),
-          data: { conversationId, messageId: message.id },
-        });
+      void (async () => {
+        try {
+          const notif = await this.inAppService.create({
+            userId: recipientId,
+            type: NotificationType.MESSAGE,
+            title: `New message from ${message.sender.name}`,
+            message:
+              message.content ||
+              (message.attachments.length > 0 ? 'Sent an attachment' : 'New message'),
+            data: { conversationId, messageId: message.id },
+          });
 
-        // Real-time notification badge alert to recipient
-        this.server.to(`user:${recipientId}`).emit('notification:new', notif);
-      } catch (err: any) {
-        this.logger.error(
-          `Failed to create in-app notification: ${err?.message}`,
-        );
-      }
+          // Real-time notification badge alert to recipient
+          this.server.to(`user:${recipientId}`).emit('notification:new', notif);
+        } catch (err: any) {
+          this.logger.error(
+            `Failed to create in-app notification: ${err?.message}`,
+          );
+        }
+      })();
     }
 
     // 6. If recipient is completely OFFLINE, dispatch an email alert (debounced by 5 min)

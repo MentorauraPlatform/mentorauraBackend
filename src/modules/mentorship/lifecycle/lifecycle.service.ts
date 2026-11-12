@@ -111,7 +111,22 @@ export class LifecycleService {
     const mentorships = await this.prisma.mentorship.findMany({
       where: { mentorId: mentorProfileId },
       include: {
-        mentee: { select: { id: true, email: true } },
+        mentee: {
+          select: {
+            id: true,
+            email: true,
+            menteeProfile: {
+              select: {
+                id: true,
+                fullName: true,
+                avatarUrl: true,
+                headline: true,
+                goals: true,
+                completedGoals: true,
+              },
+            },
+          },
+        },
         plan: {
           select: { id: true, title: true, priceAmount: true, currency: true },
         },
@@ -286,5 +301,70 @@ export class LifecycleService {
     });
 
     return { data: updated };
+  }
+
+  async updateMenteeGoals(
+    mentorshipId: string,
+    userId: string,
+    goals: string[],
+  ) {
+    const mentorProfileId = await this.getMentorProfileId(userId);
+
+    const mentorship = await this.prisma.mentorship.findUnique({
+      where: { id: mentorshipId },
+      include: {
+        mentee: {
+          include: {
+            menteeProfile: true,
+          },
+        },
+      },
+    });
+
+    if (!mentorship) {
+      throw new NotFoundException(`Mentorship ${mentorshipId} not found`);
+    }
+
+    if (mentorship.mentorId !== mentorProfileId) {
+      throw new ForbiddenException(
+        'You are not authorized to update goals for this mentee',
+      );
+    }
+
+    if (!mentorship.mentee.menteeProfile) {
+      throw new NotFoundException('Mentee profile not found');
+    }
+
+    const cleanedGoals = (goals || [])
+      .map((g) => (typeof g === 'string' ? g.trim() : ''))
+      .filter(Boolean);
+
+    // Keep only completedGoals that still exist in cleanedGoals
+    const currentCompleted = mentorship.mentee.menteeProfile.completedGoals || [];
+    const updatedCompleted = currentCompleted.filter((g) => cleanedGoals.includes(g));
+
+    const updatedProfile = await this.prisma.menteeProfile.update({
+      where: { id: mentorship.mentee.menteeProfile.id },
+      data: {
+        goals: cleanedGoals,
+        completedGoals: updatedCompleted,
+      },
+    });
+
+    this.eventEmitter.emit('mentorship.goals.updated', {
+      mentorshipId: mentorship.id,
+      mentorId: mentorship.mentorId,
+      menteeId: mentorship.menteeId,
+      goals: updatedProfile.goals,
+      completedGoals: updatedProfile.completedGoals,
+    });
+
+    return {
+      message: 'Learning goals successfully updated for mentee',
+      data: {
+        goals: updatedProfile.goals,
+        completedGoals: updatedProfile.completedGoals,
+      },
+    };
   }
 }

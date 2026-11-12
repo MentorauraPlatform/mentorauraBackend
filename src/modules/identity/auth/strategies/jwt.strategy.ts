@@ -18,6 +18,24 @@ type RequestLike = { cookies?: Record<string, unknown> } & Record<
   unknown
 >;
 
+export interface ValidatedUser {
+  userId: string;
+  email: string;
+  isMentor: boolean;
+  role: string;
+}
+
+interface CachedAuthUser extends ValidatedUser {
+  cachedAt: number;
+}
+
+const AUTH_USER_CACHE_TTL_MS = 60 * 1000; // 60 seconds cache
+const authUserCache = new Map<string, CachedAuthUser>();
+
+export function invalidateAuthUserCache(userId: string) {
+  authUserCache.delete(userId);
+}
+
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
   constructor(
@@ -47,9 +65,21 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
   }
 
-  async validate(payload: JwtPayload) {
+  async validate(payload: JwtPayload): Promise<ValidatedUser> {
     if (!payload.sub) {
       throw new UnauthorizedException('Invalid token payload');
+    }
+
+    // Check fast in-memory cache first to avoid ~850ms remote DB roundtrip on every HTTP request
+    const now = Date.now();
+    const cached = authUserCache.get(payload.sub);
+    if (cached && now - cached.cachedAt < AUTH_USER_CACHE_TTL_MS) {
+      return {
+        userId: cached.userId,
+        email: cached.email,
+        isMentor: cached.isMentor,
+        role: cached.role,
+      };
     }
 
     const user = await this.prisma.user.findUnique({
@@ -64,10 +94,12 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     });
 
     if (!user) {
+      authUserCache.delete(payload.sub);
       throw new UnauthorizedException('User account no longer exists');
     }
 
     if (!user.isActive) {
+      authUserCache.delete(payload.sub);
       throw new UnauthorizedException(
         'User account has been suspended or deactivated',
       );
@@ -81,11 +113,18 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
           ? 'mentor'
           : 'mentee';
 
-    return {
+    const result: ValidatedUser = {
       userId: user.id,
       email: user.email,
       isMentor: Boolean(user.isMentor),
       role,
     };
+
+    authUserCache.set(payload.sub, {
+      ...result,
+      cachedAt: now,
+    });
+
+    return result;
   }
 }

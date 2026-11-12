@@ -5,6 +5,9 @@ import {
   MaxLength,
   IsArray,
   ArrayMaxSize,
+  IsInt,
+  Min,
+  Max,
 } from 'class-validator';
 
 export class UpdateMentorProfileDto {
@@ -23,6 +26,15 @@ export class UpdateMentorProfileDto {
   @MaxLength(300)
   title?: string;
 
+  @ApiPropertyOptional({
+    example: 'Distributed Systems & Cloud Architecture',
+    description: 'Professional headline',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  headline?: string;
+
   @ApiPropertyOptional({ example: 'Acme Corp', description: 'Company name' })
   @IsString()
   @IsOptional()
@@ -31,11 +43,11 @@ export class UpdateMentorProfileDto {
 
   @ApiPropertyOptional({
     example: 'I help developers build scalable systems.',
-    description: 'Professional bio',
+    description: 'Professional bio (up to 5000 characters)',
   })
   @IsString()
   @IsOptional()
-  @MaxLength(1000)
+  @MaxLength(5000)
   bio?: string;
 
   @ApiPropertyOptional({
@@ -46,6 +58,52 @@ export class UpdateMentorProfileDto {
   @IsOptional()
   @MaxLength(5000)
   experience?: string;
+
+  @ApiPropertyOptional({
+    example: 10,
+    description: 'Years of professional experience',
+  })
+  @IsInt()
+  @IsOptional()
+  @Min(0)
+  @Max(60)
+  yearsOfExperience?: number;
+
+  @ApiPropertyOptional({
+    example: 'https://linkedin.com/in/janedoe',
+    description: 'LinkedIn profile URL',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(512)
+  linkedinUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://github.com/janedoe',
+    description: 'GitHub profile URL',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(512)
+  githubUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/cv.pdf',
+    description: 'CV document URL',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(512)
+  cvUrl?: string;
+
+  @ApiPropertyOptional({
+    example: 'https://example.com/id.pdf',
+    description: 'ID document URL',
+  })
+  @IsString()
+  @IsOptional()
+  @MaxLength(512)
+  idDocumentUrl?: string;
 
   @ApiPropertyOptional({
     example: ['Software Engineering', 'System Design', 'Career Growth'],

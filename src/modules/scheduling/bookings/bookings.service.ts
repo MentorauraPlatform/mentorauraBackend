@@ -11,6 +11,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma, BookingStatus } from '@prisma/client';
 import { CreateBookingDto, CancelBookingDto, NoShowBookingDto } from './dto/booking.dto';
+import { CalendarService } from '../calendar/calendar.service';
 
 @Injectable()
 export class BookingsService {
@@ -19,6 +20,7 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly calendarService: CalendarService,
   ) {}
 
   private readonly safeMentorshipInclude = {
@@ -41,7 +43,19 @@ export class BookingsService {
   async createBooking(menteeId: string, dto: CreateBookingDto) {
     const mentorship = await this.prisma.mentorship.findUnique({
       where: { id: dto.mentorshipId },
-      include: { plan: true, mentor: true },
+      include: {
+        plan: true,
+        mentor: {
+          include: {
+            user: { select: { email: true } },
+          },
+        },
+        mentee: {
+          include: {
+            menteeProfile: { select: { fullName: true } },
+          },
+        },
+      },
     });
 
     if (!mentorship) {
@@ -175,7 +189,24 @@ export class BookingsService {
       }
     }
 
-    const meetingLink = `https://meet.mentoraura.com/room/session-${crypto.randomUUID()}`;
+    const mentorEmail = mentorship.mentor?.user?.email || '';
+    const menteeEmail = mentorship.mentee?.email || '';
+    const mentorName = mentorship.mentor?.fullName || 'Mentor';
+    const menteeName = mentorship.mentee?.menteeProfile?.fullName || menteeEmail.split('@')[0] || 'Mentee';
+    const planTitle = mentorship.plan?.title || (mentorship.status === 'INTRO' ? 'Complimentary Intro Session' : 'Mentorship Session');
+
+    const meetingResult = await this.calendarService.createMeeting({
+      summary: `Mentorship: ${mentorName} & ${menteeName} (${planTitle})`,
+      description: `1-on-1 Mentorship session on MentorAura.\nPlan: ${planTitle}\nMentor: ${mentorName} (${mentorEmail})\nMentee: ${menteeName} (${menteeEmail})`,
+      startTime: scheduledAt,
+      durationMinutes,
+      mentorEmail,
+      menteeEmail,
+      mentorName,
+      menteeName,
+    });
+
+    const meetingLink = meetingResult.meetingLink;
 
     let booking;
     try {
@@ -276,7 +307,9 @@ export class BookingsService {
           });
 
           if (activeMonthBookings >= mentorship.plan.sessionsPerMonth) {
-            throw new BadRequestException('Monthly session quota exceeded for this plan.');
+            throw new BadRequestException(
+              `Session quota reached: you have already booked all ${mentorship.plan.sessionsPerMonth} session(s) included in your ${mentorship.plan.title} plan for this period.`,
+            );
           }
         }
 
@@ -636,20 +669,23 @@ export class BookingsService {
 
     this.logger.log(`Found ${pastBookings.length} past scheduled sessions to transition to COMPLETED`);
 
+    const bookingIds = pastBookings.map((b) => b.id);
+    try {
+      await this.prisma.booking.updateMany({
+        where: { id: { in: bookingIds } },
+        data: { status: BookingStatus.COMPLETED },
+      });
+
+      await this.prisma.session.updateMany({
+        where: { id: { in: bookingIds } },
+        data: { status: BookingStatus.COMPLETED },
+      }).catch(() => null);
+    } catch (err: any) {
+      this.logger.error(`Error in batch session completion: ${err?.message}`);
+    }
+
     for (const booking of pastBookings) {
       try {
-        await this.prisma.$transaction(async (tx) => {
-          await tx.booking.update({
-            where: { id: booking.id },
-            data: { status: BookingStatus.COMPLETED },
-          });
-
-          await tx.session.updateMany({
-            where: { id: booking.id },
-            data: { status: BookingStatus.COMPLETED },
-          }).catch(() => null);
-        });
-
         this.eventEmitter.emit('mentorship.booking.completed', {
           bookingId: booking.id,
           mentorshipId: booking.mentorshipId,
@@ -659,8 +695,82 @@ export class BookingsService {
           completedAt: new Date(),
         });
       } catch (err: any) {
-        this.logger.error(`Failed to auto-complete booking ${booking.id}: ${err?.message}`);
+        this.logger.error(`Failed to emit auto-completion event for booking ${booking.id}: ${err?.message}`);
       }
     }
+  }
+
+  async getBookingQuota(userId: string, mentorshipId: string) {
+    const mentorship = await this.prisma.mentorship.findUnique({
+      where: { id: mentorshipId },
+      include: {
+        plan: true,
+        mentor: { include: { user: { select: { email: true } } } },
+      },
+    });
+
+    if (!mentorship) {
+      throw new NotFoundException('Mentorship not found');
+    }
+
+    if (mentorship.menteeId !== userId && mentorship.mentor.userId !== userId) {
+      throw new ForbiddenException('Not authorized to view this mentorship quota');
+    }
+
+    if (mentorship.status === 'INTRO') {
+      const introBookings = await this.prisma.booking.count({
+        where: {
+          mentorshipId,
+          status: { notIn: [BookingStatus.CANCELLED] },
+        },
+      });
+      return {
+        data: {
+          status: 'INTRO',
+          isIntro: true,
+          totalSessionsAllowed: 1,
+          sessionsBooked: introBookings,
+          sessionsRemaining: Math.max(0, 1 - introBookings),
+          canBook: introBookings < 1,
+          planTitle: mentorship.plan?.title || 'Complimentary Intro Session',
+        },
+      };
+    }
+
+    const sessionsAllowed = mentorship.plan?.sessionsPerMonth ?? 1;
+
+    // Current month window
+    const now = new Date();
+    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
+    const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0));
+
+    const bookedThisMonth = await this.prisma.booking.count({
+      where: {
+        mentorshipId,
+        scheduledAt: { gte: monthStart, lt: monthEnd },
+        OR: [
+          { status: { in: [BookingStatus.SCHEDULED, BookingStatus.COMPLETED, BookingStatus.NO_SHOW] } },
+          {
+            status: BookingStatus.CANCELLED,
+            cancelledBy: 'MENTEE',
+            cancellationReason: { startsWith: '[Late Cancellation < 24h]' },
+          },
+        ],
+      },
+    });
+
+    const sessionsRemaining = Math.max(0, sessionsAllowed - bookedThisMonth);
+
+    return {
+      data: {
+        status: mentorship.status,
+        isIntro: false,
+        totalSessionsAllowed: sessionsAllowed,
+        sessionsBooked: bookedThisMonth,
+        sessionsRemaining,
+        canBook: mentorship.status === 'ACTIVE' && sessionsRemaining > 0,
+        planTitle: mentorship.plan?.title || 'Mentorship Plan',
+      },
+    };
   }
 }

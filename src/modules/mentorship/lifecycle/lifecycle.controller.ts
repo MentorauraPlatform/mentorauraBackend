@@ -25,6 +25,7 @@ import {
   CancelMentorshipDto,
   CompleteMentorshipDto,
   PauseMentorshipDto,
+  UpdateMenteeGoalsDto,
 } from './dto/mentorship-actions.dto';
 
 @ApiTags('Mentorship Lifecycle')
@@ -150,5 +151,23 @@ export class LifecycleController {
     @Param('id') id: string,
   ) {
     return this.lifecycleService.resumeMentorship(id, user.userId);
+  }
+
+  @Patch('mentorships/:id/goals')
+  @Roles(Role.MENTOR)
+  @ApiOperation({ summary: 'Mentor sets or updates learning goals for mentee' })
+  @ApiBearerAuth('access-token')
+  @ApiResponse({ status: 200, description: 'Learning goals updated' })
+  @ApiResponse({ status: 404, description: 'Mentorship not found' })
+  updateMenteeGoals(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('id') id: string,
+    @Body() dto: UpdateMenteeGoalsDto,
+  ) {
+    return this.lifecycleService.updateMenteeGoals(
+      id,
+      user.userId,
+      dto.goals,
+    );
   }
 }

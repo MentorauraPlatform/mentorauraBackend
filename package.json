@@ -20,6 +20,7 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed:admin": "ts-node -r tsconfig-paths/register prisma/seed-admin.ts",
+    "seed:skills": "ts-node -r tsconfig-paths/register prisma/seed-skills.ts",
     "admin:create": "ts-node -r tsconfig-paths/register scripts/admin-create.ts",
     "test:payment": "ts-node -r tsconfig-paths/register scripts/test-payment.ts",
     "test:messaging": "ts-node -r tsconfig-paths/register scripts/test-messaging.ts"

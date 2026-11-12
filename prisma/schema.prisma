@@ -212,6 +212,7 @@ model MenteeProfile {
   avatarUrl           String?  @map("avatar_url") @db.VarChar(512)
   headline            String?  @db.VarChar(255)
   goals               String[] @default([])
+  completedGoals      String[] @default([]) @map("completed_goals")
   interests           String[] @default([])
   currentRole         String?  @map("current_role") @db.VarChar(255)
   educationBackground String?  @map("education_background") @db.Text

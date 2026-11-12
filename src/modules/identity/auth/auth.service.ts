@@ -316,6 +316,7 @@ export class AuthService {
             avatarUrl: true,
             headline: true,
             goals: true,
+            completedGoals: true,
             interests: true,
             currentRole: true,
             educationBackground: true,

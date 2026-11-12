@@ -8,6 +8,8 @@ import { CreateMenteeProfileDto } from './dto/create-mentee-profile.dto';
 import { UpdateMenteeProfileDto } from './dto/update-mentee-profile.dto';
 import { UpdateInterestsDto } from './dto/update-interests.dto';
 import { UpdateGoalsDto } from './dto/update-goals.dto';
+import { ToggleGoalDto } from './dto/toggle-goal.dto';
+import { UpdateCompletedGoalsDto } from './dto/update-completed-goals.dto';
 import { UpdateExperienceDto } from './dto/update-experience.dto';
 import { UpdateAvailabilityDto } from './dto/update-availability.dto';
 import { AddSkillDto } from './dto/add-skill.dto';
@@ -53,6 +55,20 @@ export class OnboardingController {
   @ApiOperation({ summary: 'Update mentorship goals' })
   updateGoals(@CurrentUser() user: CurrentUserPayload, @Body() dto: UpdateGoalsDto) {
     return this.onboardingService.updateGoals(user.userId, dto);
+  }
+
+  @Patch('me/goals/toggle')
+  @ApiOperation({ summary: 'Mentee toggles a learning goal as completed/in-progress' })
+  @ApiResponse({ status: 200, description: 'Goal toggled successfully' })
+  toggleGoal(@CurrentUser() user: CurrentUserPayload, @Body() dto: ToggleGoalDto) {
+    return this.onboardingService.toggleGoal(user.userId, dto.goal);
+  }
+
+  @Patch('me/goals/completed')
+  @ApiOperation({ summary: 'Mentee updates list of completed learning goals' })
+  @ApiResponse({ status: 200, description: 'Completed goals list updated successfully' })
+  updateCompletedGoals(@CurrentUser() user: CurrentUserPayload, @Body() dto: UpdateCompletedGoalsDto) {
+    return this.onboardingService.updateCompletedGoals(user.userId, dto.completedGoals);
   }
 
   @Patch('me/experience')
