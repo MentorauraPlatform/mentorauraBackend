@@ -53,6 +53,7 @@ RUN mkdir -p /app/uploads && chown -R nestjs:nodejs /app/uploads
 
 # Copy built application and production dependencies
 COPY --from=builder --chown=nestjs:nodejs /app/package.json ./package.json
+COPY --from=builder --chown=nestjs:nodejs /app/tsconfig.json ./tsconfig.json
 COPY --from=builder --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nestjs:nodejs /app/dist ./dist
 COPY --from=builder --chown=nestjs:nodejs /app/prisma ./prisma

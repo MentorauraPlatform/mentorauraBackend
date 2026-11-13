@@ -19,11 +19,14 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
-    "seed:admin": "ts-node -r tsconfig-paths/register prisma/seed-admin.ts",
-    "seed:skills": "test -f dist/prisma/seed-skills.js && node dist/prisma/seed-skills.js || ts-node -r tsconfig-paths/register prisma/seed-skills.ts",
-    "admin:create": "ts-node -r tsconfig-paths/register scripts/admin-create.ts",
-    "test:payment": "ts-node -r tsconfig-paths/register scripts/test-payment.ts",
-    "test:messaging": "ts-node -r tsconfig-paths/register scripts/test-messaging.ts"
+    "seed:admin": "if [ -f dist/prisma/seed-admin.js ]; then node dist/prisma/seed-admin.js; else ts-node -r tsconfig-paths/register prisma/seed-admin.ts; fi",
+    "seed:admin:prod": "node dist/prisma/seed-admin.js",
+    "seed:skills": "if [ -f dist/prisma/seed-skills.js ]; then node dist/prisma/seed-skills.js; else ts-node -r tsconfig-paths/register prisma/seed-skills.ts; fi",
+    "seed:skills:prod": "node dist/prisma/seed-skills.js",
+    "admin:create": "if [ -f dist/scripts/admin-create.js ]; then node dist/scripts/admin-create.js; else ts-node -r tsconfig-paths/register scripts/admin-create.ts; fi",
+    "admin:create:prod": "node dist/scripts/admin-create.js",
+    "test:payment": "if [ -f dist/scripts/test-payment.js ]; then node dist/scripts/test-payment.js; else ts-node -r tsconfig-paths/register scripts/test-payment.ts; fi",
+    "test:messaging": "if [ -f dist/scripts/test-messaging.js ]; then node dist/scripts/test-messaging.js; else ts-node -r tsconfig-paths/register scripts/test-messaging.ts; fi"
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
