@@ -21,7 +21,11 @@ export interface AttachmentResult {
 @Injectable()
 export class AttachmentsService {
   private readonly logger = new Logger(AttachmentsService.name);
-  private readonly uploadDir = path.join(process.cwd(), 'uploads', 'attachments');
+  private readonly uploadDir = path.join(
+    process.cwd(),
+    'uploads',
+    'attachments',
+  );
 
   constructor(private readonly prisma: PrismaService) {
     if (!fs.existsSync(this.uploadDir)) {
@@ -67,9 +71,23 @@ export class AttachmentsService {
     }
 
     const ext = path.extname(file.originalname).toLowerCase();
-    const blockedExtensions = ['.html', '.htm', '.svg', '.js', '.mjs', '.cjs', '.sh', '.php', '.exe', '.bat', '.cmd'];
+    const blockedExtensions = [
+      '.html',
+      '.htm',
+      '.svg',
+      '.js',
+      '.mjs',
+      '.cjs',
+      '.sh',
+      '.php',
+      '.exe',
+      '.bat',
+      '.cmd',
+    ];
     if (blockedExtensions.includes(ext)) {
-      throw new BadRequestException(`File extension ${ext} is not allowed for security reasons.`);
+      throw new BadRequestException(
+        `File extension ${ext} is not allowed for security reasons.`,
+      );
     }
     const uniqueFileName = `${Date.now()}-${crypto.randomUUID()}${ext}`;
     const targetFilePath = path.join(this.uploadDir, uniqueFileName);

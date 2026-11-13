@@ -131,7 +131,13 @@ export class AdminPayoutsService {
   private async getCommissionRate(): Promise<number> {
     const setting = await this.prisma.platformSetting.findFirst({
       where: {
-        key: { in: ['commission_percentage', 'global_commission_rate', 'platform_commission_percent'] },
+        key: {
+          in: [
+            'commission_percentage',
+            'global_commission_rate',
+            'platform_commission_percent',
+          ],
+        },
       },
       orderBy: { updatedAt: 'desc' },
     });
@@ -242,37 +248,39 @@ export class AdminPayoutsService {
       throw new NotFoundException('Mentor profile not found');
     }
 
-    const { payout, availableBalance } = await this.prisma.$transaction(async (tx) => {
-      await tx.$queryRaw`SELECT id FROM mentor_profiles WHERE id = ${mentorProfile.id}::uuid FOR UPDATE`;
+    const { payout, availableBalance } = await this.prisma.$transaction(
+      async (tx) => {
+        await tx.$queryRaw`SELECT id FROM mentor_profiles WHERE id = ${mentorProfile.id}::uuid FOR UPDATE`;
 
-      const balance = await this.getMentorBalance(mentorUserId);
+        const balance = await this.getMentorBalance(mentorUserId);
 
-      if (dto.amount < balance.minPayoutAmount) {
-        throw new BadRequestException(
-          `Minimum withdrawal amount is ${balance.minPayoutAmount.toLocaleString()} XAF`,
-        );
-      }
+        if (dto.amount < balance.minPayoutAmount) {
+          throw new BadRequestException(
+            `Minimum withdrawal amount is ${balance.minPayoutAmount.toLocaleString()} XAF`,
+          );
+        }
 
-      if (dto.amount > balance.availableBalance) {
-        throw new BadRequestException(
-          `Requested payout amount (${dto.amount.toLocaleString()} XAF) exceeds your available balance (${balance.availableBalance.toLocaleString()} XAF)`,
-        );
-      }
+        if (dto.amount > balance.availableBalance) {
+          throw new BadRequestException(
+            `Requested payout amount (${dto.amount.toLocaleString()} XAF) exceeds your available balance (${balance.availableBalance.toLocaleString()} XAF)`,
+          );
+        }
 
-      const created = await tx.payout.create({
-        data: {
-          mentorId: balance.mentorId,
-          amount: BigInt(dto.amount),
-          currency: 'XAF',
-          provider: dto.provider?.toUpperCase() || 'MTN_MOMO',
-          accountNumber: cleanAccount,
-          accountName: dto.accountName || mentorProfile.fullName || 'Mentor',
-          status: 'PENDING',
-        },
-      });
+        const created = await tx.payout.create({
+          data: {
+            mentorId: balance.mentorId,
+            amount: BigInt(dto.amount),
+            currency: 'XAF',
+            provider: dto.provider?.toUpperCase() || 'MTN_MOMO',
+            accountNumber: cleanAccount,
+            accountName: dto.accountName || mentorProfile.fullName || 'Mentor',
+            status: 'PENDING',
+          },
+        });
 
-      return { payout: created, availableBalance: balance.availableBalance };
-    });
+        return { payout: created, availableBalance: balance.availableBalance };
+      },
+    );
 
     return {
       message: 'Withdrawal payout request submitted successfully',
@@ -414,11 +422,7 @@ export class AdminPayoutsService {
   /**
    * Batch approve multiple pending payouts
    */
-  async batchApprove(
-    adminId: string,
-    payoutIds: string[],
-    ipAddress?: string,
-  ) {
+  async batchApprove(adminId: string, payoutIds: string[], ipAddress?: string) {
     if (!payoutIds || payoutIds.length === 0) {
       throw new BadRequestException('No payout IDs provided');
     }

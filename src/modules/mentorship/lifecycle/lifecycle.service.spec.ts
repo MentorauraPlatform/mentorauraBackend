@@ -49,7 +49,11 @@ describe('LifecycleService', () => {
         status: 'ACTIVE',
       });
 
-      const result = await service.getMentorship('m-1', 'user-mentee-1', 'mentee');
+      const result = await service.getMentorship(
+        'm-1',
+        'user-mentee-1',
+        'mentee',
+      );
 
       expect(prisma.mentorship.findFirst).toHaveBeenCalledWith(
         expect.objectContaining({
@@ -60,14 +64,20 @@ describe('LifecycleService', () => {
     });
 
     it('should resolve mentor ownership by looking up mentorProfileId', async () => {
-      mockPrisma.mentorProfile.findUnique.mockResolvedValue({ id: 'mentor-prof-1' });
+      mockPrisma.mentorProfile.findUnique.mockResolvedValue({
+        id: 'mentor-prof-1',
+      });
       mockPrisma.mentorship.findFirst.mockResolvedValue({
         id: 'm-1',
         mentorId: 'mentor-prof-1',
         status: 'ACTIVE',
       });
 
-      const result = await service.getMentorship('m-1', 'user-mentor-1', 'mentor');
+      const result = await service.getMentorship(
+        'm-1',
+        'user-mentor-1',
+        'mentor',
+      );
 
       expect(prisma.mentorProfile.findUnique).toHaveBeenCalledWith({
         where: { userId: 'user-mentor-1' },
@@ -103,7 +113,11 @@ describe('LifecycleService', () => {
           status: 'ACTIVE',
         });
 
-        const result = await service.activateMentorship('m-1', 'user-mentee-1', 'mentee');
+        const result = await service.activateMentorship(
+          'm-1',
+          'user-mentee-1',
+          'mentee',
+        );
 
         expect(result.data.status).toBe('ACTIVE');
         expect(eventEmitter.emit).toHaveBeenCalledWith(
@@ -127,7 +141,9 @@ describe('LifecycleService', () => {
 
     describe('pauseMentorship (ACTIVE -> PAUSED)', () => {
       it('should pause ACTIVE mentorship', async () => {
-        mockPrisma.mentorProfile.findUnique.mockResolvedValue({ id: 'mentor-prof-1' });
+        mockPrisma.mentorProfile.findUnique.mockResolvedValue({
+          id: 'mentor-prof-1',
+        });
         mockPrisma.mentorship.findFirst.mockResolvedValue({
           id: 'm-1',
           mentorId: 'mentor-prof-1',
@@ -148,7 +164,9 @@ describe('LifecycleService', () => {
       });
 
       it('should throw BadRequestException if trying to pause non-ACTIVE mentorship', async () => {
-        mockPrisma.mentorProfile.findUnique.mockResolvedValue({ id: 'mentor-prof-1' });
+        mockPrisma.mentorProfile.findUnique.mockResolvedValue({
+          id: 'mentor-prof-1',
+        });
         mockPrisma.mentorship.findFirst.mockResolvedValue({
           id: 'm-1',
           mentorId: 'mentor-prof-1',
@@ -163,7 +181,9 @@ describe('LifecycleService', () => {
 
     describe('resumeMentorship (PAUSED -> ACTIVE)', () => {
       it('should resume PAUSED mentorship', async () => {
-        mockPrisma.mentorProfile.findUnique.mockResolvedValue({ id: 'mentor-prof-1' });
+        mockPrisma.mentorProfile.findUnique.mockResolvedValue({
+          id: 'mentor-prof-1',
+        });
         mockPrisma.mentorship.findFirst.mockResolvedValue({
           id: 'm-1',
           mentorId: 'mentor-prof-1',
@@ -184,7 +204,9 @@ describe('LifecycleService', () => {
       });
 
       it('should throw BadRequestException if trying to resume non-PAUSED mentorship', async () => {
-        mockPrisma.mentorProfile.findUnique.mockResolvedValue({ id: 'mentor-prof-1' });
+        mockPrisma.mentorProfile.findUnique.mockResolvedValue({
+          id: 'mentor-prof-1',
+        });
         mockPrisma.mentorship.findFirst.mockResolvedValue({
           id: 'm-1',
           mentorId: 'mentor-prof-1',
@@ -209,7 +231,11 @@ describe('LifecycleService', () => {
           status: 'COMPLETED',
         });
 
-        const result = await service.completeMentorship('m-1', 'user-mentee-1', 'mentee');
+        const result = await service.completeMentorship(
+          'm-1',
+          'user-mentee-1',
+          'mentee',
+        );
 
         expect(result.data.status).toBe('COMPLETED');
         expect(eventEmitter.emit).toHaveBeenCalledWith(
@@ -277,7 +303,12 @@ describe('LifecycleService', () => {
         });
 
         await expect(
-          service.cancelMentorship('m-1', 'user-mentee-1', 'mentee', 'Too late'),
+          service.cancelMentorship(
+            'm-1',
+            'user-mentee-1',
+            'mentee',
+            'Too late',
+          ),
         ).rejects.toThrow(BadRequestException);
       });
     });

@@ -88,10 +88,11 @@ export class DiscoveryService {
 
     const activeMentors = Math.max(mentorCount, 500);
     const completedSessions = Math.max(sessionCount, 20000);
-    
+
     let satisfactionRate = 99;
     if (reviews.length > 0) {
-      const avg = reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
+      const avg =
+        reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length;
       satisfactionRate = Math.round((avg / 5) * 100);
     }
 

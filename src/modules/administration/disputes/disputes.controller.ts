@@ -17,7 +17,13 @@ import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles, Role } from '../../../common/decorators/roles.decorator';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
-import { IsEnum, IsNumber, IsOptional, IsString, IsUUID } from 'class-validator';
+import {
+  IsEnum,
+  IsNumber,
+  IsOptional,
+  IsString,
+  IsUUID,
+} from 'class-validator';
 import {
   DisputesService,
   CreateDisputeDto,
@@ -68,7 +74,9 @@ export class DisputesController {
 
   @Get('admin/disputes')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'List platform disputes with status and reason filters' })
+  @ApiOperation({
+    summary: 'List platform disputes with status and reason filters',
+  })
   async getDisputes(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
@@ -76,7 +84,13 @@ export class DisputesController {
     @Query('reason') reason?: DisputeReason,
     @Query('search') search?: string,
   ) {
-    return this.disputesService.getDisputes({ page, limit, status, reason, search });
+    return this.disputesService.getDisputes({
+      page,
+      limit,
+      status,
+      reason,
+      search,
+    });
   }
 
   @Get('admin/disputes/stats')
@@ -97,7 +111,9 @@ export class DisputesController {
 
   @Patch('admin/disputes/:id/resolve')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Resolve a dispute ticket with outcome notes and refund' })
+  @ApiOperation({
+    summary: 'Resolve a dispute ticket with outcome notes and refund',
+  })
   async resolveDispute(
     @CurrentUser() admin: CurrentUserPayload,
     @Param('id', ParseUUIDPipe) id: string,

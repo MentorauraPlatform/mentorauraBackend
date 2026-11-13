@@ -3,7 +3,6 @@ name: CI — Backend
 on:
   push:
     branches: ['**']
-    branches-ignore: [main]
   pull_request:
     branches: ['**']
 
@@ -12,8 +11,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build
+  test:
+    name: Backend CI Tests & Build
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -30,6 +29,12 @@ jobs:
 
       - name: Generate Prisma Client
         run: npx prisma generate
+
+      - name: Lint check
+        run: npx eslint "{src,apps,libs,test}/**/*.ts" --quiet
+
+      - name: Run Unit Tests
+        run: npm test
 
       - name: Build (TypeScript compile)
         run: npm run build

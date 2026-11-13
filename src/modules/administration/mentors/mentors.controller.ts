@@ -8,7 +8,12 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles, Role } from '../../../common/decorators/roles.decorator';
@@ -50,9 +55,14 @@ export class AdminMentorsController {
   }
 
   @Patch(':id/approve')
-  @ApiOperation({ summary: 'Approve mentor application & publish to marketplace' })
+  @ApiOperation({
+    summary: 'Approve mentor application & publish to marketplace',
+  })
   @ApiResponse({ status: 200, description: 'Mentor application approved' })
-  async approveApplication(@Req() req: AuthenticatedRequest, @Param('id') id: string) {
+  async approveApplication(
+    @Req() req: AuthenticatedRequest,
+    @Param('id') id: string,
+  ) {
     return this.adminMentorsService.approveMentorApplication(
       req.user.userId,
       id,

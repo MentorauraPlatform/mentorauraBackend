@@ -9,7 +9,12 @@ import {
   UseGuards,
   Req,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles, Role } from '../../../common/decorators/roles.decorator';
@@ -45,7 +50,9 @@ export class AdminUsersController {
 
   @Post('invite')
   @Roles(Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Invite/provision a new admin user (Super Admin only)' })
+  @ApiOperation({
+    summary: 'Invite/provision a new admin user (Super Admin only)',
+  })
   @ApiResponse({ status: 201, description: 'Admin user provisioned' })
   async inviteAdmin(
     @Req() req: AuthenticatedRequest,
@@ -62,6 +69,10 @@ export class AdminUsersController {
     @Param('id') id: string,
     @Body('isActive') isActive: boolean,
   ) {
-    return this.adminUsersService.toggleUserActive(req.user.userId, id, Boolean(isActive));
+    return this.adminUsersService.toggleUserActive(
+      req.user.userId,
+      id,
+      Boolean(isActive),
+    );
   }
 }

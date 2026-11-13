@@ -43,14 +43,15 @@ export class WebhooksController {
   ) {
     const sig = signature || (req.headers['x-zopay-signature'] as string);
     const ts = timestamp || (req.headers['x-zopay-timestamp'] as string);
-    const delivery = deliveryId || (req.headers['x-zopay-delivery-id'] as string);
+    const delivery =
+      deliveryId || (req.headers['x-zopay-delivery-id'] as string);
 
     // Get raw body for cryptographic signature verification
     const rawBody = req.rawBody
       ? req.rawBody
       : typeof req.body === 'string'
-      ? req.body
-      : JSON.stringify(req.body || {});
+        ? req.body
+        : JSON.stringify(req.body || {});
 
     this.logger.log(
       `Received webhook event from ZoPay [delivery: ${delivery || 'unknown'}]`,
@@ -66,7 +67,10 @@ export class WebhooksController {
     }
 
     const payload = req.body as ZoPayWebhookEvent;
-    const result = await this.webhooksService.handleZoPayWebhook(payload, delivery);
+    const result = await this.webhooksService.handleZoPayWebhook(
+      payload,
+      delivery,
+    );
 
     return result;
   }
@@ -74,7 +78,9 @@ export class WebhooksController {
   @Public()
   @Post(':provider')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Generic webhook endpoint for mobile money providers' })
+  @ApiOperation({
+    summary: 'Generic webhook endpoint for mobile money providers',
+  })
   async handleProviderWebhook(
     @Param('provider') provider: string,
     @Req() req: RequestWithRawBody,

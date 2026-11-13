@@ -1,4 +1,8 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { BookingStatus } from '@prisma/client';
 
@@ -13,7 +17,10 @@ type AvailabilityEntry = {
   endTime: string;
 };
 
-type AvailabilityFormatA = Record<string, Array<{ start: string; end: string }>>;
+type AvailabilityFormatA = Record<
+  string,
+  Array<{ start: string; end: string }>
+>;
 type AvailabilityFormatB = {
   timezone?: string;
   slots?: AvailabilityEntry[];
@@ -51,7 +58,11 @@ function getTimezoneOffsetMinutes(timezone: string, date: Date): number {
   return (tzDate.getTime() - utcDate.getTime()) / (60 * 1000);
 }
 
-function toUtcMinutes(localHour: number, localMinute: number, offsetMinutes: number): number {
+function toUtcMinutes(
+  localHour: number,
+  localMinute: number,
+  offsetMinutes: number,
+): number {
   return localHour * 60 + localMinute - offsetMinutes;
 }
 
@@ -59,13 +70,29 @@ function toUtcMinutes(localHour: number, localMinute: number, offsetMinutes: num
 export class SlotsService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async generateSlots(mentorId: string, from: string, to: string, timezone: string) {
-    const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(mentorId);
+  async generateSlots(
+    mentorId: string,
+    from: string,
+    to: string,
+    timezone: string,
+  ) {
+    const isUuid =
+      /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(
+        mentorId,
+      );
     const mentor = await this.prisma.mentorProfile.findFirst({
       where: {
-        OR: isUuid ? [{ id: mentorId }, { userId: mentorId }] : [{ slug: mentorId }],
+        OR: isUuid
+          ? [{ id: mentorId }, { userId: mentorId }]
+          : [{ slug: mentorId }],
       },
-      select: { id: true, userId: true, availability: true, onboardingStatus: true, isVerified: true },
+      select: {
+        id: true,
+        userId: true,
+        availability: true,
+        onboardingStatus: true,
+        isVerified: true,
+      },
     });
 
     if (!mentor) {
@@ -76,7 +103,9 @@ export class SlotsService {
       throw new BadRequestException('Mentor is not available for booking');
     }
 
-    const rawAvailability = (mentor.availability as AvailabilityFormatB | AvailabilityFormatA | null) ?? null;
+    const rawAvailability =
+      (mentor.availability as
+        AvailabilityFormatB | AvailabilityFormatA | null) ?? null;
     if (!rawAvailability || typeof rawAvailability !== 'object') {
       return { data: [] };
     }
@@ -87,12 +116,17 @@ export class SlotsService {
     }
 
     assertValidTimezone(timezone);
-    const mentorTimezone = (rawAvailability as AvailabilityFormatB).timezone || timezone;
+    const mentorTimezone =
+      (rawAvailability as AvailabilityFormatB).timezone || timezone;
     assertValidTimezone(mentorTimezone);
 
     const fromDate = new Date(from);
     const toDate = new Date(to);
-    if (isNaN(fromDate.getTime()) || isNaN(toDate.getTime()) || toDate < fromDate) {
+    if (
+      isNaN(fromDate.getTime()) ||
+      isNaN(toDate.getTime()) ||
+      toDate < fromDate
+    ) {
       throw new BadRequestException('Invalid date range');
     }
     // Include full final day
@@ -111,19 +145,35 @@ export class SlotsService {
     const earliestBookable = new Date(Date.now() + 2 * 60 * 60 * 1000); // 2 hours minimum advance notice
 
     while (current <= toDate) {
-      const dayName = current.toLocaleDateString('en-US', { weekday: 'long', timeZone: mentorTimezone }).toLowerCase();
+      const dayName = current
+        .toLocaleDateString('en-US', {
+          weekday: 'long',
+          timeZone: mentorTimezone,
+        })
+        .toLowerCase();
       const normalizedDay = DAY_ALIASES[dayName] ?? dayName;
-      const matchingDaySlots = normalized.filter((s) => s.day === normalizedDay);
+      const matchingDaySlots = normalized.filter(
+        (s) => s.day === normalizedDay,
+      );
 
       for (const daySlots of matchingDaySlots) {
-        const [startHour, startMinute] = daySlots.startTime.split(':').map(Number);
+        const [startHour, startMinute] = daySlots.startTime
+          .split(':')
+          .map(Number);
         const [endHour, endMinute] = daySlots.endTime.split(':').map(Number);
 
         const dayStart = new Date(current);
         dayStart.setUTCHours(0, 0, 0, 0);
 
-        const offsetMinutes = getTimezoneOffsetMinutes(mentorTimezone, dayStart);
-        const slotStartMinutes = toUtcMinutes(startHour, startMinute, offsetMinutes);
+        const offsetMinutes = getTimezoneOffsetMinutes(
+          mentorTimezone,
+          dayStart,
+        );
+        const slotStartMinutes = toUtcMinutes(
+          startHour,
+          startMinute,
+          offsetMinutes,
+        );
         const slotEndMinutes = toUtcMinutes(endHour, endMinute, offsetMinutes);
 
         const slotStart = new Date(dayStart);
@@ -136,10 +186,17 @@ export class SlotsService {
           if (slotStart < fromDate) {
             const diff = fromDate.getTime() - slotStart.getTime();
             const remainder = diff % durationMs;
-            slotStart.setTime(slotStart.getTime() + diff + (remainder === 0 ? 0 : durationMs - remainder));
+            slotStart.setTime(
+              slotStart.getTime() +
+                diff +
+                (remainder === 0 ? 0 : durationMs - remainder),
+            );
           }
 
-          while (slotStart.getTime() + durationMs <= slotEnd.getTime() && slotStart <= toDate) {
+          while (
+            slotStart.getTime() + durationMs <= slotEnd.getTime() &&
+            slotStart <= toDate
+          ) {
             // Must satisfy advance notice cutoff
             if (slotStart.getTime() >= earliestBookable.getTime()) {
               const displayTime = slotStart.toLocaleString('en-US', {
@@ -170,10 +227,7 @@ export class SlotsService {
 
       const existingBookings = await this.prisma.booking.findMany({
         where: {
-          OR: [
-            { mentorId: mentor.id },
-            { mentorId: mentor.userId },
-          ],
+          OR: [{ mentorId: mentor.id }, { mentorId: mentor.userId }],
           status: { notIn: [BookingStatus.CANCELLED] },
           scheduledAt: { gte: queryStart, lte: queryEnd },
         },
@@ -219,7 +273,10 @@ export class SlotsService {
           day: '2-digit',
         }).format(dt);
         const utcDateKey = `${dt.getUTCFullYear()}-${String(dt.getUTCMonth() + 1).padStart(2, '0')}-${String(dt.getUTCDate()).padStart(2, '0')}`;
-        if (blackoutSet.has(mentorLocalDateParts) || blackoutSet.has(utcDateKey)) {
+        if (
+          blackoutSet.has(mentorLocalDateParts) ||
+          blackoutSet.has(utcDateKey)
+        ) {
           return false;
         }
         return true;
@@ -231,7 +288,9 @@ export class SlotsService {
     return { data: slots };
   }
 
-  private normalizeAvailability(raw: Record<string, unknown>): AvailabilityEntry[] {
+  private normalizeAvailability(
+    raw: Record<string, unknown>,
+  ): AvailabilityEntry[] {
     const entries: AvailabilityEntry[] = [];
 
     const formatA = raw as AvailabilityFormatA;
@@ -239,8 +298,16 @@ export class SlotsService {
 
     if ('slots' in raw && Array.isArray(formatB.slots)) {
       for (const entry of formatB.slots) {
-        if (entry && typeof entry === 'object' && 'day' in entry && 'startTime' in entry && 'endTime' in entry) {
-          const day = DAY_ALIASES[String(entry.day).toLowerCase()] ?? String(entry.day).toLowerCase();
+        if (
+          entry &&
+          typeof entry === 'object' &&
+          'day' in entry &&
+          'startTime' in entry &&
+          'endTime' in entry
+        ) {
+          const day =
+            DAY_ALIASES[String(entry.day).toLowerCase()] ??
+            String(entry.day).toLowerCase();
           entries.push({
             day,
             startTime: String(entry.startTime),
@@ -251,12 +318,25 @@ export class SlotsService {
       return entries;
     }
 
-    const dayKeys = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+    const dayKeys = [
+      'monday',
+      'tuesday',
+      'wednesday',
+      'thursday',
+      'friday',
+      'saturday',
+      'sunday',
+    ];
     for (const dayKey of dayKeys) {
       const value = formatA[dayKey];
       if (Array.isArray(value)) {
         for (const window of value) {
-          if (window && typeof window === 'object' && 'start' in window && 'end' in window) {
+          if (
+            window &&
+            typeof window === 'object' &&
+            'start' in window &&
+            'end' in window
+          ) {
             entries.push({
               day: dayKey,
               startTime: String(window.start),

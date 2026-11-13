@@ -36,10 +36,7 @@ export class AdminMentorsService {
       if (statusUpper === 'SUBMITTED' || statusUpper === 'PENDING') {
         where.onboardingStatus = { in: ['SUBMITTED', 'PENDING'] };
       } else if (statusUpper === 'COMPLETE' || statusUpper === 'VERIFIED') {
-        where.OR = [
-          { onboardingStatus: 'COMPLETE' },
-          { isVerified: true },
-        ];
+        where.OR = [{ onboardingStatus: 'COMPLETE' }, { isVerified: true }];
       } else {
         where.onboardingStatus = statusUpper;
       }
@@ -125,7 +122,11 @@ export class AdminMentorsService {
     return { data: mentor };
   }
 
-  async approveMentorApplication(adminId: string, id: string, ipAddress?: string) {
+  async approveMentorApplication(
+    adminId: string,
+    id: string,
+    ipAddress?: string,
+  ) {
     const mentor = await this.prisma.mentorProfile.findUnique({
       where: { id },
     });
@@ -153,7 +154,11 @@ export class AdminMentorsService {
           adminId,
           action: 'MENTOR_APPROVED',
           targetId: id,
-          details: { mentorId: id, userId: mentor.userId, email: updatedProfile.fullName },
+          details: {
+            mentorId: id,
+            userId: mentor.userId,
+            email: updatedProfile.fullName,
+          },
           ipAddress: ipAddress || null,
         },
       });

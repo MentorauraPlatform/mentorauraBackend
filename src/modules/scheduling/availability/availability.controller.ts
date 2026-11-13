@@ -1,5 +1,11 @@
 import { Controller, Get, Put, Param, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { AvailabilityService } from './availability.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
@@ -39,7 +45,13 @@ export class AvailabilityController {
   })
   @ApiResponse({ status: 200, description: 'Availability updated' })
   @ApiResponse({ status: 404, description: 'Mentor not found' })
-  updateAvailability(@CurrentUser() user: CurrentUserPayload, @Body() availability: Record<string, unknown>) {
-    return this.availabilityService.updateAvailability(user.userId, availability as never);
+  updateAvailability(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() availability: Record<string, unknown>,
+  ) {
+    return this.availabilityService.updateAvailability(
+      user.userId,
+      availability as never,
+    );
   }
 }

@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { ModerationStatus, ModerationTargetType, Prisma } from '@prisma/client';
 
@@ -76,7 +80,9 @@ export class ModerationService {
                     id: true,
                     email: true,
                     role: true,
-                    menteeProfile: { select: { fullName: true, avatarUrl: true } },
+                    menteeProfile: {
+                      select: { fullName: true, avatarUrl: true },
+                    },
                     mentorProfile: { select: { fullName: true } },
                   },
                 },
@@ -87,8 +93,7 @@ export class ModerationService {
                 msg.sender.mentorProfile?.fullName ||
                 msg.sender.menteeProfile?.fullName ||
                 msg.sender.email;
-              const senderAvatar =
-                msg.sender.menteeProfile?.avatarUrl || null;
+              const senderAvatar = msg.sender.menteeProfile?.avatarUrl || null;
               targetPreview = {
                 type: 'MESSAGE',
                 id: msg.id,
@@ -156,7 +161,9 @@ export class ModerationService {
                   select: {
                     id: true,
                     email: true,
-                    menteeProfile: { select: { fullName: true, avatarUrl: true } },
+                    menteeProfile: {
+                      select: { fullName: true, avatarUrl: true },
+                    },
                   },
                 },
               },
@@ -169,7 +176,9 @@ export class ModerationService {
                 comment: review.comment,
                 author: {
                   id: review.reviewer.id,
-                  name: review.reviewer.menteeProfile?.fullName || review.reviewer.email,
+                  name:
+                    review.reviewer.menteeProfile?.fullName ||
+                    review.reviewer.email,
                   avatarUrl: review.reviewer.menteeProfile?.avatarUrl || null,
                 },
               };
@@ -212,28 +221,35 @@ export class ModerationService {
   }
 
   async getStats() {
-    const [total, pending, actionTaken, dismissed, byMessage, byProfile, byReview] =
-      await Promise.all([
-        this.prisma.moderationReport.count(),
-        this.prisma.moderationReport.count({
-          where: { status: ModerationStatus.PENDING },
-        }),
-        this.prisma.moderationReport.count({
-          where: { status: ModerationStatus.ACTION_TAKEN },
-        }),
-        this.prisma.moderationReport.count({
-          where: { status: ModerationStatus.DISMISSED },
-        }),
-        this.prisma.moderationReport.count({
-          where: { targetType: ModerationTargetType.MESSAGE },
-        }),
-        this.prisma.moderationReport.count({
-          where: { targetType: ModerationTargetType.USER_PROFILE },
-        }),
-        this.prisma.moderationReport.count({
-          where: { targetType: ModerationTargetType.REVIEW },
-        }),
-      ]);
+    const [
+      total,
+      pending,
+      actionTaken,
+      dismissed,
+      byMessage,
+      byProfile,
+      byReview,
+    ] = await Promise.all([
+      this.prisma.moderationReport.count(),
+      this.prisma.moderationReport.count({
+        where: { status: ModerationStatus.PENDING },
+      }),
+      this.prisma.moderationReport.count({
+        where: { status: ModerationStatus.ACTION_TAKEN },
+      }),
+      this.prisma.moderationReport.count({
+        where: { status: ModerationStatus.DISMISSED },
+      }),
+      this.prisma.moderationReport.count({
+        where: { targetType: ModerationTargetType.MESSAGE },
+      }),
+      this.prisma.moderationReport.count({
+        where: { targetType: ModerationTargetType.USER_PROFILE },
+      }),
+      this.prisma.moderationReport.count({
+        where: { targetType: ModerationTargetType.REVIEW },
+      }),
+    ]);
 
     return {
       total,
@@ -250,7 +266,9 @@ export class ModerationService {
 
   async createReport(reporterId: string, dto: CreateReportDto) {
     if (!dto.targetType || !dto.targetId || !dto.reason) {
-      throw new BadRequestException('Target type, target ID, and reason are required');
+      throw new BadRequestException(
+        'Target type, target ID, and reason are required',
+      );
     }
 
     const report = await this.prisma.moderationReport.create({
@@ -283,7 +301,9 @@ export class ModerationService {
     });
 
     if (!report) {
-      throw new NotFoundException(`Moderation report with ID ${reportId} not found`);
+      throw new NotFoundException(
+        `Moderation report with ID ${reportId} not found`,
+      );
     }
 
     const newStatus =
@@ -318,7 +338,9 @@ export class ModerationService {
         }
 
         if (userIdToSuspend === adminId) {
-          throw new BadRequestException('Admins cannot suspend their own account');
+          throw new BadRequestException(
+            'Admins cannot suspend their own account',
+          );
         }
 
         const targetUser = await tx.user.findUnique({

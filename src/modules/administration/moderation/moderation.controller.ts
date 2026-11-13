@@ -56,14 +56,21 @@ export class ModerationController {
 
   @Get('admin/moderation/reports')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'List flagged content reports with status/type filters' })
+  @ApiOperation({
+    summary: 'List flagged content reports with status/type filters',
+  })
   async getReports(
     @Query('page') page?: number,
     @Query('limit') limit?: number,
     @Query('status') status?: ModerationStatus,
     @Query('targetType') targetType?: ModerationTargetType,
   ) {
-    return this.moderationService.getReports({ page, limit, status, targetType });
+    return this.moderationService.getReports({
+      page,
+      limit,
+      status,
+      targetType,
+    });
   }
 
   @Get('admin/moderation/stats')
@@ -76,7 +83,9 @@ export class ModerationController {
 
   @Post('admin/moderation/reports/:id/action')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Apply moderation action (delete content, suspend user, dismiss)' })
+  @ApiOperation({
+    summary: 'Apply moderation action (delete content, suspend user, dismiss)',
+  })
   async takeAction(
     @CurrentUser() admin: CurrentUserPayload,
     @Param('id', ParseUUIDPipe) id: string,
@@ -88,12 +97,17 @@ export class ModerationController {
   }
 
   @Post('moderation/reports')
-  @ApiOperation({ summary: 'Submit a flag/report on a message, user profile, or review' })
+  @ApiOperation({
+    summary: 'Submit a flag/report on a message, user profile, or review',
+  })
   async reportContent(
     @CurrentUser() user: CurrentUserPayload,
     @Body() dto: CreateReportBodyDto,
   ) {
     const data = await this.moderationService.createReport(user.userId, dto);
-    return { data, message: 'Report submitted successfully. Our safety team will review it.' };
+    return {
+      data,
+      message: 'Report submitted successfully. Our safety team will review it.',
+    };
   }
 }

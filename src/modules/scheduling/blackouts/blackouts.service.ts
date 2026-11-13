@@ -1,4 +1,10 @@
-import { Injectable, NotFoundException, BadRequestException, ConflictException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ConflictException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
@@ -50,8 +56,13 @@ export class BlackoutDatesService {
 
       return { data: blackout };
     } catch (err) {
-      if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === 'P2002') {
-        throw new ConflictException('Blackout date already exists for this date');
+      if (
+        err instanceof Prisma.PrismaClientKnownRequestError &&
+        err.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'Blackout date already exists for this date',
+        );
       }
       throw err;
     }
@@ -75,7 +86,9 @@ export class BlackoutDatesService {
     }
 
     if (blackout.mentorProfileId !== mentor.id) {
-      throw new ForbiddenException('You are not authorized to delete this blackout date');
+      throw new ForbiddenException(
+        'You are not authorized to delete this blackout date',
+      );
     }
 
     await this.prisma.blackoutDate.delete({

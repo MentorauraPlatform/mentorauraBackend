@@ -10,7 +10,11 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma, BookingStatus } from '@prisma/client';
-import { CreateBookingDto, CancelBookingDto, NoShowBookingDto } from './dto/booking.dto';
+import {
+  CreateBookingDto,
+  CancelBookingDto,
+  NoShowBookingDto,
+} from './dto/booking.dto';
 import { CalendarService } from '../calendar/calendar.service';
 
 @Injectable()
@@ -63,15 +67,22 @@ export class BookingsService {
     }
 
     if (mentorship.menteeId !== menteeId) {
-      throw new ForbiddenException('You are not authorized to book this mentorship');
+      throw new ForbiddenException(
+        'You are not authorized to book this mentorship',
+      );
     }
 
     if (mentorship.status !== 'INTRO' && mentorship.status !== 'ACTIVE') {
       throw new BadRequestException('Mentorship is not open for booking');
     }
 
-    if (!mentorship.mentor.isVerified || mentorship.mentor.onboardingStatus !== 'COMPLETE') {
-      throw new BadRequestException('Mentor is not currently verified or available for bookings');
+    if (
+      !mentorship.mentor.isVerified ||
+      mentorship.mentor.onboardingStatus !== 'COMPLETE'
+    ) {
+      throw new BadRequestException(
+        'Mentor is not currently verified or available for bookings',
+      );
     }
 
     const scheduledAt = new Date(dto.scheduledAt);
@@ -88,8 +99,13 @@ export class BookingsService {
     }
 
     // Check blackout dates (both UTC date and mentor's timezone local date)
-    const rawAvail = (mentorship.mentor.availability as Record<string, any> | null) ?? null;
-    const mentorTimezone = (rawAvail && typeof rawAvail.timezone === 'string' && rawAvail.timezone) || 'UTC';
+    const rawAvail =
+      (mentorship.mentor.availability as Record<string, any> | null) ?? null;
+    const mentorTimezone =
+      (rawAvail &&
+        typeof rawAvail.timezone === 'string' &&
+        rawAvail.timezone) ||
+      'UTC';
     let mentorLocalDateStr = scheduledAt.toISOString().split('T')[0];
     try {
       mentorLocalDateStr = new Intl.DateTimeFormat('en-CA', {
@@ -120,25 +136,50 @@ export class BookingsService {
 
     // Validate against mentor's configured recurring availability windows if configured
     if (rawAvail && typeof rawAvail === 'object') {
-      const normalizedWindows: Array<{ day: string; startTime: string; endTime: string }> = [];
+      const normalizedWindows: Array<{
+        day: string;
+        startTime: string;
+        endTime: string;
+      }> = [];
       const dayAliases: Record<string, string> = {
-        monday: 'monday', mon: 'monday',
-        tuesday: 'tuesday', tue: 'tuesday',
-        wednesday: 'wednesday', wed: 'wednesday',
-        thursday: 'thursday', thu: 'thursday',
-        friday: 'friday', fri: 'friday',
-        saturday: 'saturday', sat: 'saturday',
-        sunday: 'sunday', sun: 'sunday',
+        monday: 'monday',
+        mon: 'monday',
+        tuesday: 'tuesday',
+        tue: 'tuesday',
+        wednesday: 'wednesday',
+        wed: 'wednesday',
+        thursday: 'thursday',
+        thu: 'thursday',
+        friday: 'friday',
+        fri: 'friday',
+        saturday: 'saturday',
+        sat: 'saturday',
+        sunday: 'sunday',
+        sun: 'sunday',
       };
       if (Array.isArray(rawAvail.slots)) {
         for (const s of rawAvail.slots) {
           if (s && s.day && s.startTime && s.endTime) {
-            const dKey = dayAliases[String(s.day).toLowerCase()] ?? String(s.day).toLowerCase();
-            normalizedWindows.push({ day: dKey, startTime: String(s.startTime), endTime: String(s.endTime) });
+            const dKey =
+              dayAliases[String(s.day).toLowerCase()] ??
+              String(s.day).toLowerCase();
+            normalizedWindows.push({
+              day: dKey,
+              startTime: String(s.startTime),
+              endTime: String(s.endTime),
+            });
           }
         }
       } else {
-        for (const dKey of ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday']) {
+        for (const dKey of [
+          'monday',
+          'tuesday',
+          'wednesday',
+          'thursday',
+          'friday',
+          'saturday',
+          'sunday',
+        ]) {
           const arr = rawAvail[dKey];
           if (Array.isArray(arr)) {
             for (const w of arr) {
@@ -155,17 +196,26 @@ export class BookingsService {
       }
 
       if (normalizedWindows.length > 0) {
-        let targetDayName = scheduledAt.toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' }).toLowerCase();
-        let localMinutesFromMidnight = scheduledAt.getUTCHours() * 60 + scheduledAt.getUTCMinutes();
+        let targetDayName = scheduledAt
+          .toLocaleDateString('en-US', { weekday: 'long', timeZone: 'UTC' })
+          .toLowerCase();
+        let localMinutesFromMidnight =
+          scheduledAt.getUTCHours() * 60 + scheduledAt.getUTCMinutes();
         try {
-          targetDayName = scheduledAt.toLocaleDateString('en-US', { weekday: 'long', timeZone: mentorTimezone }).toLowerCase();
+          targetDayName = scheduledAt
+            .toLocaleDateString('en-US', {
+              weekday: 'long',
+              timeZone: mentorTimezone,
+            })
+            .toLowerCase();
           const parts = new Intl.DateTimeFormat('en-US', {
             timeZone: mentorTimezone,
             hour: '2-digit',
             minute: '2-digit',
             hour12: false,
           }).formatToParts(scheduledAt);
-          const h = Number(parts.find((p) => p.type === 'hour')?.value ?? 0) % 24;
+          const h =
+            Number(parts.find((p) => p.type === 'hour')?.value ?? 0) % 24;
           const m = Number(parts.find((p) => p.type === 'minute')?.value ?? 0);
           localMinutesFromMidnight = h * 60 + m;
         } catch {
@@ -178,7 +228,9 @@ export class BookingsService {
           const [eh, em] = w.endTime.split(':').map(Number);
           const winStart = sh * 60 + sm;
           const winEnd = eh * 60 + em;
-          return localMinutesFromMidnight >= winStart && reqEndMinutes <= winEnd;
+          return (
+            localMinutesFromMidnight >= winStart && reqEndMinutes <= winEnd
+          );
         });
 
         if (!matchesWindow) {
@@ -192,8 +244,15 @@ export class BookingsService {
     const mentorEmail = mentorship.mentor?.user?.email || '';
     const menteeEmail = mentorship.mentee?.email || '';
     const mentorName = mentorship.mentor?.fullName || 'Mentor';
-    const menteeName = mentorship.mentee?.menteeProfile?.fullName || menteeEmail.split('@')[0] || 'Mentee';
-    const planTitle = mentorship.plan?.title || (mentorship.status === 'INTRO' ? 'Complimentary Intro Session' : 'Mentorship Session');
+    const menteeName =
+      mentorship.mentee?.menteeProfile?.fullName ||
+      menteeEmail.split('@')[0] ||
+      'Mentee';
+    const planTitle =
+      mentorship.plan?.title ||
+      (mentorship.status === 'INTRO'
+        ? 'Complimentary Intro Session'
+        : 'Mentorship Session');
 
     const meetingResult = await this.calendarService.createMeeting({
       summary: `Mentorship: ${mentorName} & ${menteeName} (${planTitle})`,
@@ -215,8 +274,12 @@ export class BookingsService {
         await tx.$queryRaw`SELECT id FROM mentor_profiles WHERE id = ${mentorship.mentorId}::uuid FOR UPDATE`;
 
         // Check for overlapping non-cancelled bookings within +/- 4 hours
-        const windowStart = new Date(scheduledAt.getTime() - 4 * 60 * 60 * 1000);
-        const windowEnd = new Date(scheduledAt.getTime() + (durationMinutes + 240) * 60 * 1000);
+        const windowStart = new Date(
+          scheduledAt.getTime() - 4 * 60 * 60 * 1000,
+        );
+        const windowEnd = new Date(
+          scheduledAt.getTime() + (durationMinutes + 240) * 60 * 1000,
+        );
         const nearbyScheduled = await tx.booking.findMany({
           where: {
             OR: [
@@ -238,7 +301,9 @@ export class BookingsService {
         });
 
         if (hasConflict) {
-          throw new ConflictException('This time slot has already been booked for this mentor. Please select another slot.');
+          throw new ConflictException(
+            'This time slot has already been booked for this mentor. Please select another slot.',
+          );
         }
 
         const menteeOverlap = await tx.booking.findMany({
@@ -257,7 +322,9 @@ export class BookingsService {
         });
 
         if (hasMenteeConflict) {
-          throw new ConflictException('You already have another session booked at this time.');
+          throw new ConflictException(
+            'You already have another session booked at this time.',
+          );
         }
 
         if (mentorship.status === 'INTRO') {
@@ -269,14 +336,18 @@ export class BookingsService {
                 {
                   status: BookingStatus.CANCELLED,
                   cancelledBy: 'MENTEE',
-                  cancellationReason: { startsWith: '[Late Cancellation < 24h]' },
+                  cancellationReason: {
+                    startsWith: '[Late Cancellation < 24h]',
+                  },
                 },
               ],
             },
           });
 
           if (introBookingCount >= 1) {
-            throw new BadRequestException('Free intro call has already been booked for this mentorship.');
+            throw new BadRequestException(
+              'Free intro call has already been booked for this mentorship.',
+            );
           }
         }
 
@@ -296,11 +367,21 @@ export class BookingsService {
                 lt: monthEnd,
               },
               OR: [
-                { status: { in: [BookingStatus.SCHEDULED, BookingStatus.COMPLETED, BookingStatus.NO_SHOW] } },
+                {
+                  status: {
+                    in: [
+                      BookingStatus.SCHEDULED,
+                      BookingStatus.COMPLETED,
+                      BookingStatus.NO_SHOW,
+                    ],
+                  },
+                },
                 {
                   status: BookingStatus.CANCELLED,
                   cancelledBy: 'MENTEE',
-                  cancellationReason: { startsWith: '[Late Cancellation < 24h]' },
+                  cancellationReason: {
+                    startsWith: '[Late Cancellation < 24h]',
+                  },
                 },
               ],
             },
@@ -332,23 +413,30 @@ export class BookingsService {
       });
 
       // Mirror into Session entity outside the transaction so a failure never aborts the PostgreSQL transaction
-      await this.prisma.session.create({
-        data: {
-          id: booking.id,
-          mentorshipId: mentorship.id,
-          mentorId: mentorship.mentorId,
-          menteeId,
-          scheduledAt,
-          durationMinutes,
-          status: BookingStatus.SCHEDULED,
-          meetingLink,
-        },
-      }).catch((err) => {
-        this.logger.debug(`Session mirror creation notice: ${err?.message}`);
-      });
+      await this.prisma.session
+        .create({
+          data: {
+            id: booking.id,
+            mentorshipId: mentorship.id,
+            mentorId: mentorship.mentorId,
+            menteeId,
+            scheduledAt,
+            durationMinutes,
+            status: BookingStatus.SCHEDULED,
+            meetingLink,
+          },
+        })
+        .catch((err) => {
+          this.logger.debug(`Session mirror creation notice: ${err?.message}`);
+        });
     } catch (error) {
-      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
-        throw new ConflictException('This time slot was just booked by another user');
+      if (
+        error instanceof Prisma.PrismaClientKnownRequestError &&
+        error.code === 'P2002'
+      ) {
+        throw new ConflictException(
+          'This time slot was just booked by another user',
+        );
       }
       throw error;
     }
@@ -373,7 +461,14 @@ export class BookingsService {
       include: {
         mentorship: {
           include: {
-            plan: { select: { id: true, title: true, priceAmount: true, currency: true } },
+            plan: {
+              select: {
+                id: true,
+                title: true,
+                priceAmount: true,
+                currency: true,
+              },
+            },
             mentor: {
               select: {
                 id: true,
@@ -416,7 +511,14 @@ export class BookingsService {
         },
         mentorship: {
           include: {
-            plan: { select: { id: true, title: true, priceAmount: true, currency: true } },
+            plan: {
+              select: {
+                id: true,
+                title: true,
+                priceAmount: true,
+                currency: true,
+              },
+            },
           },
         },
       },
@@ -433,7 +535,14 @@ export class BookingsService {
         mentor: { select: { id: true, fullName: true, userId: true } },
         mentorship: {
           include: {
-            plan: { select: { id: true, title: true, priceAmount: true, currency: true } },
+            plan: {
+              select: {
+                id: true,
+                title: true,
+                priceAmount: true,
+                currency: true,
+              },
+            },
           },
         },
       },
@@ -444,7 +553,9 @@ export class BookingsService {
     }
 
     if (booking.menteeId !== userId && booking.mentor.userId !== userId) {
-      throw new ForbiddenException('You are not authorized to view this booking');
+      throw new ForbiddenException(
+        'You are not authorized to view this booking',
+      );
     }
 
     return booking;
@@ -453,7 +564,11 @@ export class BookingsService {
   /**
    * Cancel booking with strict notice window policies and audit logging
    */
-  async cancelBooking(bookingId: string, userId: string, dto?: CancelBookingDto) {
+  async cancelBooking(
+    bookingId: string,
+    userId: string,
+    dto?: CancelBookingDto,
+  ) {
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
       include: { mentor: { select: { userId: true, fullName: true } } },
@@ -467,7 +582,9 @@ export class BookingsService {
     const isMentor = booking.mentor.userId === userId;
 
     if (!isMentee && !isMentor) {
-      throw new ForbiddenException('You are not authorized to cancel this booking');
+      throw new ForbiddenException(
+        'You are not authorized to cancel this booking',
+      );
     }
 
     if (booking.status !== BookingStatus.SCHEDULED) {
@@ -476,10 +593,13 @@ export class BookingsService {
 
     // Sessions that have already started cannot be cancelled
     if (booking.scheduledAt.getTime() <= Date.now()) {
-      throw new BadRequestException('Sessions that have already started or passed cannot be cancelled.');
+      throw new BadRequestException(
+        'Sessions that have already started or passed cannot be cancelled.',
+      );
     }
 
-    const hoursUntilSession = (booking.scheduledAt.getTime() - Date.now()) / (1000 * 60 * 60);
+    const hoursUntilSession =
+      (booking.scheduledAt.getTime() - Date.now()) / (1000 * 60 * 60);
     const isLateCancellation = hoursUntilSession < 24;
 
     const cancelledBy = isMentee ? 'MENTEE' : 'MENTOR';
@@ -499,10 +619,12 @@ export class BookingsService {
       },
     });
 
-    await this.prisma.session.updateMany({
-      where: { id: bookingId },
-      data: { status: BookingStatus.CANCELLED },
-    }).catch(() => null);
+    await this.prisma.session
+      .updateMany({
+        where: { id: bookingId },
+        data: { status: BookingStatus.CANCELLED },
+      })
+      .catch(() => null);
 
     this.eventEmitter.emit('mentorship.booking.cancelled', {
       bookingId: updated.id,
@@ -534,7 +656,9 @@ export class BookingsService {
     const isMentor = booking.mentor.userId === userId;
 
     if (!isMentee && !isMentor) {
-      throw new ForbiddenException('You are not authorized to complete this booking');
+      throw new ForbiddenException(
+        'You are not authorized to complete this booking',
+      );
     }
 
     if (booking.status === BookingStatus.COMPLETED) {
@@ -542,11 +666,15 @@ export class BookingsService {
     }
 
     if (booking.status !== BookingStatus.SCHEDULED) {
-      throw new BadRequestException(`Cannot complete a session with status ${booking.status}`);
+      throw new BadRequestException(
+        `Cannot complete a session with status ${booking.status}`,
+      );
     }
 
     if (booking.scheduledAt.getTime() > Date.now()) {
-      throw new BadRequestException('Cannot mark a future session as completed before its scheduled start time');
+      throw new BadRequestException(
+        'Cannot mark a future session as completed before its scheduled start time',
+      );
     }
 
     const updated = await this.prisma.booking.update({
@@ -559,10 +687,12 @@ export class BookingsService {
       },
     });
 
-    await this.prisma.session.updateMany({
-      where: { id: bookingId },
-      data: { status: BookingStatus.COMPLETED },
-    }).catch(() => null);
+    await this.prisma.session
+      .updateMany({
+        where: { id: bookingId },
+        data: { status: BookingStatus.COMPLETED },
+      })
+      .catch(() => null);
 
     this.eventEmitter.emit('mentorship.booking.completed', {
       bookingId: updated.id,
@@ -572,7 +702,10 @@ export class BookingsService {
       completedAt: new Date(),
     });
 
-    return { data: updated, message: 'Session successfully marked as completed' };
+    return {
+      data: updated,
+      message: 'Session successfully marked as completed',
+    };
   }
 
   /**
@@ -592,17 +725,23 @@ export class BookingsService {
     const isMentor = booking.mentor.userId === userId;
 
     if (!isMentee && !isMentor) {
-      throw new ForbiddenException('You are not authorized to report no-show for this booking');
+      throw new ForbiddenException(
+        'You are not authorized to report no-show for this booking',
+      );
     }
 
     if (booking.status !== BookingStatus.SCHEDULED) {
-      throw new BadRequestException(`Cannot report no-show for a booking with status ${booking.status}`);
+      throw new BadRequestException(
+        `Cannot report no-show for a booking with status ${booking.status}`,
+      );
     }
 
     // Must be at least 15 minutes past start time
     const minBufferMs = 15 * 60 * 1000;
     if (booking.scheduledAt.getTime() + minBufferMs > Date.now()) {
-      throw new BadRequestException('No-show can only be reported at least 15 minutes after session start time');
+      throw new BadRequestException(
+        'No-show can only be reported at least 15 minutes after session start time',
+      );
     }
 
     const actualReporter = isMentee ? 'MENTEE' : 'MENTOR';
@@ -621,10 +760,12 @@ export class BookingsService {
       },
     });
 
-    await this.prisma.session.updateMany({
-      where: { id: bookingId },
-      data: { status: BookingStatus.NO_SHOW },
-    }).catch(() => null);
+    await this.prisma.session
+      .updateMany({
+        where: { id: bookingId },
+        data: { status: BookingStatus.NO_SHOW },
+      })
+      .catch(() => null);
 
     this.eventEmitter.emit('mentorship.booking.no_show', {
       bookingId: updated.id,
@@ -644,11 +785,15 @@ export class BookingsService {
    */
   @Cron(CronExpression.EVERY_10_MINUTES)
   async sweepPastScheduledSessions() {
-    this.logger.debug('Running session lifecycle sweeper for past scheduled bookings...');
+    this.logger.debug(
+      'Running session lifecycle sweeper for past scheduled bookings...',
+    );
 
     // A session is considered finished 15 minutes after its scheduled duration ends
     const gracePeriodMinutes = 15;
-    const minCutoffTime = new Date(Date.now() - (15 + gracePeriodMinutes) * 60 * 1000);
+    const minCutoffTime = new Date(
+      Date.now() - (15 + gracePeriodMinutes) * 60 * 1000,
+    );
 
     const candidateBookings = await this.prisma.booking.findMany({
       where: {
@@ -660,14 +805,19 @@ export class BookingsService {
 
     const nowMs = Date.now();
     const pastBookings = candidateBookings.filter(
-      (b) => b.scheduledAt.getTime() + ((b.durationMinutes || 60) + gracePeriodMinutes) * 60 * 1000 <= nowMs,
+      (b) =>
+        b.scheduledAt.getTime() +
+          ((b.durationMinutes || 60) + gracePeriodMinutes) * 60 * 1000 <=
+        nowMs,
     );
 
     if (pastBookings.length === 0) {
       return;
     }
 
-    this.logger.log(`Found ${pastBookings.length} past scheduled sessions to transition to COMPLETED`);
+    this.logger.log(
+      `Found ${pastBookings.length} past scheduled sessions to transition to COMPLETED`,
+    );
 
     const bookingIds = pastBookings.map((b) => b.id);
     try {
@@ -676,10 +826,12 @@ export class BookingsService {
         data: { status: BookingStatus.COMPLETED },
       });
 
-      await this.prisma.session.updateMany({
-        where: { id: { in: bookingIds } },
-        data: { status: BookingStatus.COMPLETED },
-      }).catch(() => null);
+      await this.prisma.session
+        .updateMany({
+          where: { id: { in: bookingIds } },
+          data: { status: BookingStatus.COMPLETED },
+        })
+        .catch(() => null);
     } catch (err: any) {
       this.logger.error(`Error in batch session completion: ${err?.message}`);
     }
@@ -695,7 +847,9 @@ export class BookingsService {
           completedAt: new Date(),
         });
       } catch (err: any) {
-        this.logger.error(`Failed to emit auto-completion event for booking ${booking.id}: ${err?.message}`);
+        this.logger.error(
+          `Failed to emit auto-completion event for booking ${booking.id}: ${err?.message}`,
+        );
       }
     }
   }
@@ -714,7 +868,9 @@ export class BookingsService {
     }
 
     if (mentorship.menteeId !== userId && mentorship.mentor.userId !== userId) {
-      throw new ForbiddenException('Not authorized to view this mentorship quota');
+      throw new ForbiddenException(
+        'Not authorized to view this mentorship quota',
+      );
     }
 
     if (mentorship.status === 'INTRO') {
@@ -741,15 +897,27 @@ export class BookingsService {
 
     // Current month window
     const now = new Date();
-    const monthStart = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0));
-    const monthEnd = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0));
+    const monthStart = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1, 0, 0, 0),
+    );
+    const monthEnd = new Date(
+      Date.UTC(now.getUTCFullYear(), now.getUTCMonth() + 1, 1, 0, 0, 0),
+    );
 
     const bookedThisMonth = await this.prisma.booking.count({
       where: {
         mentorshipId,
         scheduledAt: { gte: monthStart, lt: monthEnd },
         OR: [
-          { status: { in: [BookingStatus.SCHEDULED, BookingStatus.COMPLETED, BookingStatus.NO_SHOW] } },
+          {
+            status: {
+              in: [
+                BookingStatus.SCHEDULED,
+                BookingStatus.COMPLETED,
+                BookingStatus.NO_SHOW,
+              ],
+            },
+          },
           {
             status: BookingStatus.CANCELLED,
             cancelledBy: 'MENTEE',

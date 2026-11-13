@@ -2,7 +2,11 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AdminUsersService } from './users.service';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { MailService } from '../../../common/services/mail.service';
-import { ConflictException, ForbiddenException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { UserRole } from '@prisma/client';
 
 describe('AdminUsersService', () => {
@@ -25,7 +29,12 @@ describe('AdminUsersService', () => {
           }),
         ),
         update: jest.fn().mockImplementation(({ where, data }) =>
-          Promise.resolve({ id: where.id, email: 'target@example.com', role: 'ADMIN', ...data }),
+          Promise.resolve({
+            id: where.id,
+            email: 'target@example.com',
+            role: 'ADMIN',
+            ...data,
+          }),
         ),
       },
       adminAuditLog: {
@@ -83,7 +92,9 @@ describe('AdminUsersService', () => {
       prisma.user.findUnique.mockResolvedValueOnce({ id: 'existing-id' });
 
       await expect(
-        service.inviteAdmin('super-admin-id', { email: 'officer@mentoraura.com' }),
+        service.inviteAdmin('super-admin-id', {
+          email: 'officer@mentoraura.com',
+        }),
       ).rejects.toThrow(ConflictException);
     });
   });
@@ -96,9 +107,16 @@ describe('AdminUsersService', () => {
     });
 
     it('should update user active status and write audit log', async () => {
-      prisma.user.findUnique.mockResolvedValueOnce({ id: 'user-2', email: 'user@example.com' });
+      prisma.user.findUnique.mockResolvedValueOnce({
+        id: 'user-2',
+        email: 'user@example.com',
+      });
 
-      const result = await service.toggleUserActive('admin-id', 'user-2', false);
+      const result = await service.toggleUserActive(
+        'admin-id',
+        'user-2',
+        false,
+      );
       expect(result.data.isActive).toBe(false);
       expect(prisma.adminAuditLog.create).toHaveBeenCalledWith(
         expect.objectContaining({

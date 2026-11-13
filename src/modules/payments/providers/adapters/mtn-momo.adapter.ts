@@ -47,7 +47,11 @@ export class MtnMomoAdapter implements IPaymentProvider {
     return this.zopayAdapter.verifyPayment(reference);
   }
 
-  verifyWebhookSignature(payload: unknown, signature: string, timestamp?: string): boolean {
+  verifyWebhookSignature(
+    payload: unknown,
+    signature: string,
+    timestamp?: string,
+  ): boolean {
     return this.zopayAdapter.verifyWebhookSignature(
       typeof payload === 'string' ? payload : JSON.stringify(payload),
       signature,

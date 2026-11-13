@@ -1,5 +1,19 @@
-import { Controller, Get, Post, Delete, Param, Body, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody } from '@nestjs/swagger';
+import {
+  Controller,
+  Get,
+  Post,
+  Delete,
+  Param,
+  Body,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+  ApiBody,
+} from '@nestjs/swagger';
 import { IsISO8601, IsOptional, IsString } from 'class-validator';
 import { BlackoutDatesService } from './blackouts.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
@@ -48,8 +62,15 @@ export class BlackoutsController {
     },
   })
   @ApiResponse({ status: 201, description: 'Blackout date created' })
-  create(@CurrentUser() user: CurrentUserPayload, @Body() body: CreateBlackoutBodyDto) {
-    return this.blackoutDatesService.create(user.userId, body.date, body.reason);
+  create(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() body: CreateBlackoutBodyDto,
+  ) {
+    return this.blackoutDatesService.create(
+      user.userId,
+      body.date,
+      body.reason,
+    );
   }
 
   @Delete(':id')

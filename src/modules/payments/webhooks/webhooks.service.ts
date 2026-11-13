@@ -58,7 +58,9 @@ export class WebhooksService {
     const metadataMentorshipId = data.metadata?.mentorshipId;
 
     if (!transactionId && !metadataPaymentId && !metadataMentorshipId) {
-      this.logger.warn('Webhook payload contains no identifier for payment matching');
+      this.logger.warn(
+        'Webhook payload contains no identifier for payment matching',
+      );
       return { received: true, ignored: true, reason: 'No identifier found' };
     }
 
@@ -99,8 +101,13 @@ export class WebhooksService {
     // 3. Handle Payment Succeeded
     if (event === 'payment.succeeded') {
       // Idempotency: if already SUCCESS and mentorship is already ACTIVE, no-op
-      if (payment.status === 'SUCCESS' && payment.mentorship?.status !== 'INTRO') {
-        this.logger.log(`Payment ${payment.id} already marked SUCCESS (idempotent callback)`);
+      if (
+        payment.status === 'SUCCESS' &&
+        payment.mentorship?.status !== 'INTRO'
+      ) {
+        this.logger.log(
+          `Payment ${payment.id} already marked SUCCESS (idempotent callback)`,
+        );
         return { received: true, status: 'SUCCESS', alreadyProcessed: true };
       }
 

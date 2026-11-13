@@ -1,5 +1,19 @@
-﻿import { Controller, Get, Post, Patch, Delete, Body, Param, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+﻿import {
+  Controller,
+  Get,
+  Post,
+  Patch,
+  Delete,
+  Body,
+  Param,
+  UseGuards,
+} from '@nestjs/common';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { OnboardingService } from './onboarding.service';
 import { CurrentUser } from '../../../common/decorators/current-user.decorator';
 import type { CurrentUserPayload } from '../../../common/decorators/current-user.decorator';
@@ -27,7 +41,10 @@ export class OnboardingController {
   @ApiOperation({ summary: 'Create mentee profile' })
   @ApiResponse({ status: 201, description: 'Mentee profile created' })
   @ApiResponse({ status: 409, description: 'Profile already exists' })
-  createProfile(@CurrentUser() user: CurrentUserPayload, @Body() dto: CreateMenteeProfileDto) {
+  createProfile(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: CreateMenteeProfileDto,
+  ) {
     return this.onboardingService.createProfile(user.userId, dto);
   }
 
@@ -41,45 +58,74 @@ export class OnboardingController {
 
   @Patch('me')
   @ApiOperation({ summary: 'Update mentee profile' })
-  updateProfile(@CurrentUser() user: CurrentUserPayload, @Body() dto: UpdateMenteeProfileDto) {
+  updateProfile(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateMenteeProfileDto,
+  ) {
     return this.onboardingService.updateProfile(user.userId, dto);
   }
 
   @Patch('me/interests')
   @ApiOperation({ summary: 'Update interests' })
-  updateInterests(@CurrentUser() user: CurrentUserPayload, @Body() dto: UpdateInterestsDto) {
+  updateInterests(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateInterestsDto,
+  ) {
     return this.onboardingService.updateInterests(user.userId, dto);
   }
 
   @Patch('me/goals')
   @ApiOperation({ summary: 'Update mentorship goals' })
-  updateGoals(@CurrentUser() user: CurrentUserPayload, @Body() dto: UpdateGoalsDto) {
+  updateGoals(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateGoalsDto,
+  ) {
     return this.onboardingService.updateGoals(user.userId, dto);
   }
 
   @Patch('me/goals/toggle')
-  @ApiOperation({ summary: 'Mentee toggles a learning goal as completed/in-progress' })
+  @ApiOperation({
+    summary: 'Mentee toggles a learning goal as completed/in-progress',
+  })
   @ApiResponse({ status: 200, description: 'Goal toggled successfully' })
-  toggleGoal(@CurrentUser() user: CurrentUserPayload, @Body() dto: ToggleGoalDto) {
+  toggleGoal(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: ToggleGoalDto,
+  ) {
     return this.onboardingService.toggleGoal(user.userId, dto.goal);
   }
 
   @Patch('me/goals/completed')
   @ApiOperation({ summary: 'Mentee updates list of completed learning goals' })
-  @ApiResponse({ status: 200, description: 'Completed goals list updated successfully' })
-  updateCompletedGoals(@CurrentUser() user: CurrentUserPayload, @Body() dto: UpdateCompletedGoalsDto) {
-    return this.onboardingService.updateCompletedGoals(user.userId, dto.completedGoals);
+  @ApiResponse({
+    status: 200,
+    description: 'Completed goals list updated successfully',
+  })
+  updateCompletedGoals(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateCompletedGoalsDto,
+  ) {
+    return this.onboardingService.updateCompletedGoals(
+      user.userId,
+      dto.completedGoals,
+    );
   }
 
   @Patch('me/experience')
   @ApiOperation({ summary: 'Update experience' })
-  updateExperience(@CurrentUser() user: CurrentUserPayload, @Body() dto: UpdateExperienceDto) {
+  updateExperience(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateExperienceDto,
+  ) {
     return this.onboardingService.updateExperience(user.userId, dto);
   }
 
   @Patch('me/availability')
   @ApiOperation({ summary: 'Update availability/preferences' })
-  updateAvailability(@CurrentUser() user: CurrentUserPayload, @Body() dto: UpdateAvailabilityDto) {
+  updateAvailability(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: UpdateAvailabilityDto,
+  ) {
     return this.onboardingService.updateAvailability(user.userId, dto);
   }
 
@@ -101,13 +147,19 @@ export class OnboardingController {
 
   @Delete('me/skills/:skillId')
   @ApiOperation({ summary: 'Remove skill' })
-  removeSkill(@CurrentUser() user: CurrentUserPayload, @Param('skillId') skillId: string) {
+  removeSkill(
+    @CurrentUser() user: CurrentUserPayload,
+    @Param('skillId') skillId: string,
+  ) {
     return this.onboardingService.removeSkill(user.userId, skillId);
   }
 
   @Post('me/submit')
   @ApiOperation({ summary: 'Complete onboarding' })
-  submitOnboarding(@CurrentUser() user: CurrentUserPayload, @Body() dto: SubmitOnboardingDto) {
+  submitOnboarding(
+    @CurrentUser() user: CurrentUserPayload,
+    @Body() dto: SubmitOnboardingDto,
+  ) {
     return this.onboardingService.submitOnboarding(user.userId, dto);
   }
 }

@@ -132,14 +132,19 @@ describe('ApplicationsService', () => {
       expect(result.data.id).toBe('app-1');
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'mentorship.application.submitted',
-        expect.objectContaining({ applicationId: 'app-1', menteeId: 'mentee-1' }),
+        expect.objectContaining({
+          applicationId: 'app-1',
+          menteeId: 'mentee-1',
+        }),
       );
     });
   });
 
   describe('getMentorApplications', () => {
     it('should resolve mentorProfileId and fetch mentor applications', async () => {
-      prisma.mentorProfile.findUnique.mockResolvedValue({ id: 'mentor-prof-1' });
+      prisma.mentorProfile.findUnique.mockResolvedValue({
+        id: 'mentor-prof-1',
+      });
       prisma.mentorshipApplication.findMany.mockResolvedValue([
         { id: 'app-1', mentorId: 'mentor-prof-1' },
       ]);
@@ -161,7 +166,9 @@ describe('ApplicationsService', () => {
 
   describe('acceptApplication', () => {
     it('should throw ForbiddenException if mentor profile does not match application', async () => {
-      prisma.mentorProfile.findUnique.mockResolvedValue({ id: 'mentor-prof-1' });
+      prisma.mentorProfile.findUnique.mockResolvedValue({
+        id: 'mentor-prof-1',
+      });
       prisma.mentorshipApplication.findUnique.mockResolvedValue({
         id: 'app-1',
         mentorId: 'different-mentor-prof',
@@ -174,7 +181,9 @@ describe('ApplicationsService', () => {
     });
 
     it('should accept application, create INTRO mentorship, and emit accepted event', async () => {
-      prisma.mentorProfile.findUnique.mockResolvedValue({ id: 'mentor-prof-1' });
+      prisma.mentorProfile.findUnique.mockResolvedValue({
+        id: 'mentor-prof-1',
+      });
       prisma.mentorshipApplication.findUnique.mockResolvedValue({
         id: 'app-1',
         menteeId: 'mentee-1',
@@ -230,7 +239,10 @@ describe('ApplicationsService', () => {
       expect(result.data.status).toBe(MentorshipApplicationStatus.WITHDRAWN);
       expect(eventEmitter.emit).toHaveBeenCalledWith(
         'mentorship.application.withdrawn',
-        expect.objectContaining({ applicationId: 'app-1', menteeId: 'mentee-1' }),
+        expect.objectContaining({
+          applicationId: 'app-1',
+          menteeId: 'mentee-1',
+        }),
       );
     });
 

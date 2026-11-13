@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { DisputeStatus, DisputeReason, Prisma } from '@prisma/client';
 
@@ -52,8 +56,16 @@ export class DisputesService {
           raisedBy: {
             OR: [
               { email: { contains: filter.search, mode: 'insensitive' } },
-              { menteeProfile: { fullName: { contains: filter.search, mode: 'insensitive' } } },
-              { mentorProfile: { fullName: { contains: filter.search, mode: 'insensitive' } } },
+              {
+                menteeProfile: {
+                  fullName: { contains: filter.search, mode: 'insensitive' },
+                },
+              },
+              {
+                mentorProfile: {
+                  fullName: { contains: filter.search, mode: 'insensitive' },
+                },
+              },
             ],
           },
         },
@@ -115,8 +127,7 @@ export class DisputesService {
         d.raisedBy?.menteeProfile?.fullName ||
         d.raisedBy?.email ||
         'Unknown';
-      const raisedByAvatar =
-        d.raisedBy?.menteeProfile?.avatarUrl || null;
+      const raisedByAvatar = d.raisedBy?.menteeProfile?.avatarUrl || null;
 
       const targetUserName = d.targetUser
         ? d.targetUser.mentorProfile?.fullName ||
@@ -337,10 +348,7 @@ export class DisputesService {
       });
 
       // If refunded, update booking status if exists
-      if (
-        dto.status === DisputeStatus.RESOLVED_REFUNDED &&
-        dispute.bookingId
-      ) {
+      if (dto.status === DisputeStatus.RESOLVED_REFUNDED && dispute.bookingId) {
         await tx.booking.update({
           where: { id: dispute.bookingId },
           data: { status: 'CANCELLED' },
@@ -371,7 +379,9 @@ export class DisputesService {
       message: `Dispute status updated to ${dto.status}`,
       dispute: {
         ...updated,
-        refundAmount: updated.refundAmount ? Number(updated.refundAmount) : null,
+        refundAmount: updated.refundAmount
+          ? Number(updated.refundAmount)
+          : null,
       },
     };
   }

@@ -256,7 +256,9 @@ export class ApplicationsService {
         ? undefined
         : dto.availability === null
           ? Prisma.JsonNull
-          : (JSON.parse(JSON.stringify(dto.availability)) as Prisma.InputJsonValue);
+          : (JSON.parse(
+              JSON.stringify(dto.availability),
+            ) as Prisma.InputJsonValue);
 
     const updated = await this.prisma.mentorProfile.update({
       where: { userId },

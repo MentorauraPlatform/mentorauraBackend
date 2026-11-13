@@ -1,5 +1,10 @@
 import { Controller, Get, Query, UseGuards } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
 import { Roles, Role } from '../../../common/decorators/roles.decorator';
@@ -14,7 +19,9 @@ export class ReportingController {
   constructor(private readonly reportingService: ReportingService) {}
 
   @Get('financial-summary')
-  @ApiOperation({ summary: 'Get aggregated financial and revenue reporting metrics' })
+  @ApiOperation({
+    summary: 'Get aggregated financial and revenue reporting metrics',
+  })
   @ApiResponse({ status: 200, description: 'Financial summary' })
   async getFinancialSummary() {
     const data = await this.reportingService.getFinancialSummary();
@@ -22,7 +29,9 @@ export class ReportingController {
   }
 
   @Get('transactions')
-  @ApiOperation({ summary: 'List platform transactions with filters and pagination' })
+  @ApiOperation({
+    summary: 'List platform transactions with filters and pagination',
+  })
   @ApiResponse({ status: 200, description: 'Paginated transactions list' })
   async getTransactions(
     @Query('page') page?: number,

@@ -38,7 +38,8 @@ export class InAppController {
     @CurrentUser() user: CurrentUserPayload,
     @Query('page', new DefaultValuePipe(1), ParseIntPipe) page: number,
     @Query('limit', new DefaultValuePipe(20), ParseIntPipe) limit: number,
-    @Query('unreadOnly', new DefaultValuePipe(false), ParseBoolPipe) unreadOnly: boolean,
+    @Query('unreadOnly', new DefaultValuePipe(false), ParseBoolPipe)
+    unreadOnly: boolean,
   ) {
     return this.inAppService.findAll(user.userId, page, limit, unreadOnly);
   }

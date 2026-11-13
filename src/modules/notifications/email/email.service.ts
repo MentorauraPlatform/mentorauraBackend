@@ -106,7 +106,9 @@ export class EmailService {
       this.logger.log(`Offline message alert sent to ${to}`);
       return true;
     } catch (err: any) {
-      this.logger.error(`Failed to send offline message email to ${to}: ${err?.message}`);
+      this.logger.error(
+        `Failed to send offline message email to ${to}: ${err?.message}`,
+      );
       return false;
     }
   }
@@ -148,7 +150,9 @@ export class EmailService {
       });
       return true;
     } catch (err: any) {
-      this.logger.error(`Failed to send booking confirmation email to ${to}: ${err?.message}`);
+      this.logger.error(
+        `Failed to send booking confirmation email to ${to}: ${err?.message}`,
+      );
       return false;
     }
   }
@@ -184,7 +188,9 @@ export class EmailService {
       });
       return true;
     } catch (err: any) {
-      this.logger.error(`Failed to send cancellation email to ${to}: ${err?.message}`);
+      this.logger.error(
+        `Failed to send cancellation email to ${to}: ${err?.message}`,
+      );
       return false;
     }
   }

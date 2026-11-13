@@ -56,7 +56,9 @@ export class MessagingGateway
   ) {}
 
   afterInit() {
-    this.logger.log('Messaging WebSocket Gateway initialized at namespace /messaging');
+    this.logger.log(
+      'Messaging WebSocket Gateway initialized at namespace /messaging',
+    );
   }
 
   /**
@@ -106,7 +108,9 @@ export class MessagingGateway
       }
 
       if (!token) {
-        this.logger.warn(`Client connection rejected: No token provided (${client.id})`);
+        this.logger.warn(
+          `Client connection rejected: No token provided (${client.id})`,
+        );
         client.emit('error', { message: 'Authentication required' });
         client.disconnect(true);
         return;
@@ -340,7 +344,9 @@ export class MessagingGateway
     this.server
       .to(`conversation:${conversationId}`)
       .emit('message_received', message);
-    this.server.to(`conversation:${conversationId}`).emit('message:new', message);
+    this.server
+      .to(`conversation:${conversationId}`)
+      .emit('message:new', message);
 
     // 2. Emit unread/preview update to recipient's personal user room
     this.server.to(`user:${recipientId}`).emit('conversation_updated', {
@@ -381,7 +387,9 @@ export class MessagingGateway
             title: `New message from ${message.sender.name}`,
             message:
               message.content ||
-              (message.attachments.length > 0 ? 'Sent an attachment' : 'New message'),
+              (message.attachments.length > 0
+                ? 'Sent an attachment'
+                : 'New message'),
             data: { conversationId, messageId: message.id },
           });
 

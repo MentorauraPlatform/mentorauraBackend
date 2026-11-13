@@ -24,9 +24,11 @@ describe('AdminMentorsService', () => {
         findMany: jest.fn().mockResolvedValue([mockMentorProfile]),
         count: jest.fn().mockResolvedValue(1),
         findUnique: jest.fn().mockResolvedValue(mockMentorProfile),
-        update: jest.fn().mockImplementation(({ data }) =>
-          Promise.resolve({ ...mockMentorProfile, ...data }),
-        ),
+        update: jest
+          .fn()
+          .mockImplementation(({ data }) =>
+            Promise.resolve({ ...mockMentorProfile, ...data }),
+          ),
       },
       user: {
         update: jest.fn().mockResolvedValue({ id: 'user-456', isMentor: true }),
@@ -58,17 +60,28 @@ describe('AdminMentorsService', () => {
 
   describe('getMentorApplications', () => {
     it('should query applications and map SUBMITTED to PENDING/SUBMITTED', async () => {
-      const result = await service.getMentorApplications({ status: 'SUBMITTED', page: 1, limit: 10 });
+      const result = await service.getMentorApplications({
+        status: 'SUBMITTED',
+        page: 1,
+        limit: 10,
+      });
       expect(result.data).toHaveLength(1);
       expect(prisma.mentorProfile.findMany).toHaveBeenCalled();
-      const whereArg = (prisma.mentorProfile.findMany as jest.Mock).mock.calls[0][0].where;
-      expect(whereArg.onboardingStatus).toEqual({ in: ['SUBMITTED', 'PENDING'] });
+      const whereArg = (prisma.mentorProfile.findMany as jest.Mock).mock
+        .calls[0][0].where;
+      expect(whereArg.onboardingStatus).toEqual({
+        in: ['SUBMITTED', 'PENDING'],
+      });
     });
   });
 
   describe('approveMentorApplication', () => {
     it('should approve mentor, update isVerified, and emit approval event', async () => {
-      const result = await service.approveMentorApplication('admin-1', 'mentor-123', '127.0.0.1');
+      const result = await service.approveMentorApplication(
+        'admin-1',
+        'mentor-123',
+        '127.0.0.1',
+      );
       expect(result.data.isVerified).toBe(true);
       expect(result.data.onboardingStatus).toBe('COMPLETE');
       expect(prisma.adminAuditLog.create).toHaveBeenCalledWith(
@@ -124,7 +137,9 @@ describe('AdminMentorsService', () => {
 
     it('should throw BadRequestException if rejection reason is empty', async () => {
       await expect(
-        service.rejectMentorApplication('admin-1', 'mentor-123', { rejectionReason: '   ' }),
+        service.rejectMentorApplication('admin-1', 'mentor-123', {
+          rejectionReason: '   ',
+        }),
       ).rejects.toThrow(BadRequestException);
     });
   });

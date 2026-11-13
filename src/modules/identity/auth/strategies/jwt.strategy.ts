@@ -109,7 +109,9 @@ export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
     const role =
       rawRole === 'admin' || rawRole === 'super_admin'
         ? rawRole
-        : user.isMentor || rawRole === 'mentor' || payload.role?.toLowerCase() === 'mentor'
+        : user.isMentor ||
+            rawRole === 'mentor' ||
+            payload.role?.toLowerCase() === 'mentor'
           ? 'mentor'
           : 'mentee';
 

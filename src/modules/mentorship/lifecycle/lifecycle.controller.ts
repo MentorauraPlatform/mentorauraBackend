@@ -164,10 +164,6 @@ export class LifecycleController {
     @Param('id') id: string,
     @Body() dto: UpdateMenteeGoalsDto,
   ) {
-    return this.lifecycleService.updateMenteeGoals(
-      id,
-      user.userId,
-      dto.goals,
-    );
+    return this.lifecycleService.updateMenteeGoals(id, user.userId, dto.goals);
   }
 }

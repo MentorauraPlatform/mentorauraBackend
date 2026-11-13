@@ -17,7 +17,9 @@ export class BalanceController {
 
   @Get('balance')
   @Roles(Role.MENTOR)
-  @ApiOperation({ summary: 'Get current mentor available balance and payout limits' })
+  @ApiOperation({
+    summary: 'Get current mentor available balance and payout limits',
+  })
   async getBalance(@CurrentUser() user: CurrentUserPayload) {
     const data = await this.payoutsService.getMentorBalance(user.userId);
     return { data };

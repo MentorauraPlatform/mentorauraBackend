@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 import { Prisma } from '@prisma/client';
 
@@ -19,7 +23,10 @@ export class AvailabilityService {
     return { data: mentor.availability ?? {} };
   }
 
-  async updateAvailability(userId: string, availability: Prisma.InputJsonValue) {
+  async updateAvailability(
+    userId: string,
+    availability: Prisma.InputJsonValue,
+  ) {
     const mentor = await this.prisma.mentorProfile.findUnique({
       where: { userId },
     });
@@ -30,7 +37,7 @@ export class AvailabilityService {
 
     const updated = await this.prisma.mentorProfile.update({
       where: { id: mentor.id },
-      data: { availability: availability as unknown as Prisma.InputJsonValue },
+      data: { availability: availability },
       select: { id: true, availability: true },
     });
 

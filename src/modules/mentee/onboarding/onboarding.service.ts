@@ -21,7 +21,9 @@ export class OnboardingService {
   constructor(private readonly prisma: PrismaService) {}
 
   private async getProfileOrThrow(userId: string) {
-    const profile = await this.prisma.menteeProfile.findUnique({ where: { userId } });
+    const profile = await this.prisma.menteeProfile.findUnique({
+      where: { userId },
+    });
     if (!profile) throw new NotFoundException('Mentee profile not found');
     return profile;
   }
@@ -43,11 +45,18 @@ export class OnboardingService {
   };
 
   async createProfile(userId: string, dto: CreateMenteeProfileDto) {
-    const existing = await this.prisma.menteeProfile.findUnique({ where: { userId } });
+    const existing = await this.prisma.menteeProfile.findUnique({
+      where: { userId },
+    });
     if (existing) throw new ConflictException('Mentee profile already exists');
 
     const profile = await this.prisma.menteeProfile.create({
-      data: { userId, fullName: dto.fullName, avatarUrl: dto.avatarUrl, headline: dto.headline },
+      data: {
+        userId,
+        fullName: dto.fullName,
+        avatarUrl: dto.avatarUrl,
+        headline: dto.headline,
+      },
       include: this.safeUserInclude,
     });
     return { data: profile };
@@ -116,7 +125,9 @@ export class OnboardingService {
     });
 
     return {
-      message: isCompleted ? 'Goal marked as in-progress' : 'Goal marked as completed',
+      message: isCompleted
+        ? 'Goal marked as in-progress'
+        : 'Goal marked as completed',
       data: updated,
     };
   }

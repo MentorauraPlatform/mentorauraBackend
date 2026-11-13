@@ -40,8 +40,14 @@ async function bootstrap() {
 
   // ── CORS ──────────────────────────────────────────────────────────────────
   const allowedOrigins = process.env.FRONTEND_URL
-    ? process.env.FRONTEND_URL.split(',').map((url) => url.trim().replace(/\/$/, ''))
-    : ['http://localhost:3000', 'http://localhost:3001', 'https://mentoraura-frontend.vercel.app'];
+    ? process.env.FRONTEND_URL.split(',').map((url) =>
+        url.trim().replace(/\/$/, ''),
+      )
+    : [
+        'http://localhost:3000',
+        'http://localhost:3001',
+        'https://mentoraura-frontend.vercel.app',
+      ];
 
   app.enableCors({
     origin: (origin, callback) => {
@@ -50,7 +56,8 @@ async function bootstrap() {
       if (
         allowedOrigins.includes(normalized) ||
         normalized.endsWith('.vercel.app') ||
-        (process.env.NODE_ENV !== 'production' && /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized))
+        (process.env.NODE_ENV !== 'production' &&
+          /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(normalized))
       ) {
         return callback(null, true);
       }
@@ -58,7 +65,12 @@ async function bootstrap() {
     },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'X-Requested-With'],
+    allowedHeaders: [
+      'Content-Type',
+      'Authorization',
+      'Accept',
+      'X-Requested-With',
+    ],
   });
 
   // ── Global validation pipe ─────────────────────────────────────────────────

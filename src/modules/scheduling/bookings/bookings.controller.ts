@@ -62,7 +62,9 @@ export class BookingsController {
 
   @Get('quota/:mentorshipId')
   @Roles(Role.MENTEE, Role.MENTOR)
-  @ApiOperation({ summary: 'Get booking quota and remaining sessions for a mentorship' })
+  @ApiOperation({
+    summary: 'Get booking quota and remaining sessions for a mentorship',
+  })
   @ApiBearerAuth('access-token')
   @ApiResponse({ status: 200, description: 'Quota retrieved' })
   getBookingQuota(

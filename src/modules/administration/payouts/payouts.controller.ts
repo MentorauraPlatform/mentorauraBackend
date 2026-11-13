@@ -10,7 +10,12 @@ import {
   Req,
   ParseUUIDPipe,
 } from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { PayoutStatus } from '@prisma/client';
 import { JwtAuthGuard } from '../../identity/auth/guards/jwt-auth.guard';
 import { RolesGuard } from '../../../common/guards/roles.guard';
@@ -117,7 +122,9 @@ export class AdminPayoutsController {
 
   @Get('balance')
   @Roles(Role.MENTOR)
-  @ApiOperation({ summary: 'Get current mentor available balance and payout limits' })
+  @ApiOperation({
+    summary: 'Get current mentor available balance and payout limits',
+  })
   async getBalance(@CurrentUser() user: CurrentUserPayload) {
     const data = await this.payoutsService.getMentorBalance(user.userId);
     return { data };

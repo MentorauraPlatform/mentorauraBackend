@@ -35,7 +35,8 @@ export class CheckoutController {
   })
   @ApiResponse({
     status: 200,
-    description: 'Payment initiated successfully with provider reference or redirect URL',
+    description:
+      'Payment initiated successfully with provider reference or redirect URL',
   })
   @ApiResponse({
     status: 400,

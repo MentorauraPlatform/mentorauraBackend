@@ -232,7 +232,10 @@ export class MailService {
       this.logger.log(`Admin invitation email sent successfully to ${to}`);
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send admin invitation email to ${to}`, error);
+      this.logger.error(
+        `Failed to send admin invitation email to ${to}`,
+        error,
+      );
       return false;
     }
   }
@@ -293,7 +296,8 @@ export class MailService {
       await this.transporter.sendMail({
         from,
         to,
-        subject: '🎉 Congratulations! Your Mentor Profile is Approved - MentorAura',
+        subject:
+          '🎉 Congratulations! Your Mentor Profile is Approved - MentorAura',
         html: htmlContent,
       });
       this.logger.log(`Mentor application approval email sent to ${to}`);
@@ -367,7 +371,10 @@ export class MailService {
       this.logger.log(`Mentor application rejection email sent to ${to}`);
       return true;
     } catch (error) {
-      this.logger.error(`Failed to send mentor rejection email to ${to}`, error);
+      this.logger.error(
+        `Failed to send mentor rejection email to ${to}`,
+        error,
+      );
       return false;
     }
   }

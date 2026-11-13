@@ -230,7 +230,12 @@ export class AuthService {
 
     const isUserMentor = Boolean(user.isMentor);
     const effectiveRole = this.getEffectiveRole(user);
-    const tokens = await this.generateTokens(user.id, user.email, isUserMentor, effectiveRole);
+    const tokens = await this.generateTokens(
+      user.id,
+      user.email,
+      isUserMentor,
+      effectiveRole,
+    );
 
     return {
       message: 'Login successful',
@@ -364,7 +369,10 @@ export class AuthService {
       throw new UnauthorizedException('Invitation token is required');
     }
 
-    const hashedToken = crypto.createHash('sha256').update(dto.token).digest('hex');
+    const hashedToken = crypto
+      .createHash('sha256')
+      .update(dto.token)
+      .digest('hex');
 
     const user = await this.prisma.user.findFirst({
       where: {
@@ -402,7 +410,12 @@ export class AuthService {
     }
 
     const effectiveRole = this.getEffectiveRole(updated);
-    const tokens = await this.generateTokens(updated.id, updated.email, false, effectiveRole);
+    const tokens = await this.generateTokens(
+      updated.id,
+      updated.email,
+      false,
+      effectiveRole,
+    );
 
     return {
       message: 'Administrative account activated successfully',
@@ -410,7 +423,8 @@ export class AuthService {
         id: updated.id,
         email: updated.email,
         role: effectiveRole,
-        fullName: dto.fullName || user.menteeProfile?.fullName || 'Administrator',
+        fullName:
+          dto.fullName || user.menteeProfile?.fullName || 'Administrator',
       },
       tokens,
     };
@@ -579,7 +593,10 @@ export class AuthService {
     };
   }
 
-  getEffectiveRole(user: { role?: string | null; isMentor?: boolean | null }): string {
+  getEffectiveRole(user: {
+    role?: string | null;
+    isMentor?: boolean | null;
+  }): string {
     const r = (user.role || '').toUpperCase();
     if (r === 'SUPER_ADMIN') {
       return 'super_admin';

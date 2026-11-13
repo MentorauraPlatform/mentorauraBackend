@@ -50,15 +50,21 @@ export class MessagesController {
     @Param('id', ParseUUIDPipe) id: string,
     @Body() dto: SendMessageDto,
   ) {
-    const { message, recipientId, recipientUser } = await this.messagesService.createMessage(
-      user.userId,
-      id,
-      dto.content,
-      dto.attachmentIds,
-    );
+    const { message, recipientId, recipientUser } =
+      await this.messagesService.createMessage(
+        user.userId,
+        id,
+        dto.content,
+        dto.attachmentIds,
+      );
 
     // Broadcast in real-time over WebSocket gateway and trigger alerts
-    await this.messagingGateway.broadcastNewMessage(id, message, recipientId, recipientUser);
+    await this.messagingGateway.broadcastNewMessage(
+      id,
+      message,
+      recipientId,
+      recipientUser,
+    );
 
     return { data: message };
   }

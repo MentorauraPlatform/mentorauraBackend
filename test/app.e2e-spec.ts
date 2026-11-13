@@ -1,5 +1,9 @@
 import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, ValidationPipe, VersioningType } from '@nestjs/common';
+import {
+  INestApplication,
+  ValidationPipe,
+  VersioningType,
+} from '@nestjs/common';
 import request from 'supertest';
 import { App } from 'supertest/types';
 
@@ -85,9 +89,12 @@ describe('MentorAura Platform (e2e)', () => {
       }),
       user: {
         findUnique: jest.fn(({ where }: any) => {
-          if (where?.id && usersStore[where.id]) return Promise.resolve(usersStore[where.id]);
+          if (where?.id && usersStore[where.id])
+            return Promise.resolve(usersStore[where.id]);
           if (where?.email) {
-            const found = Object.values(usersStore).find((u) => u.email === where.email);
+            const found = Object.values(usersStore).find(
+              (u) => u.email === where.email,
+            );
             return Promise.resolve(found || null);
           }
           return Promise.resolve(null);
@@ -108,7 +115,10 @@ describe('MentorAura Platform (e2e)', () => {
       },
       mentorProfile: {
         findUnique: jest.fn(({ where }: any) => {
-          if (where?.userId === MENTOR_USER_ID || where?.id === MENTOR_PROFILE_ID) {
+          if (
+            where?.userId === MENTOR_USER_ID ||
+            where?.id === MENTOR_PROFILE_ID
+          ) {
             return Promise.resolve({
               id: MENTOR_PROFILE_ID,
               userId: MENTOR_USER_ID,
@@ -140,13 +150,19 @@ describe('MentorAura Platform (e2e)', () => {
           { key: 'commission_rate', value: '10' },
           { key: 'min_payout_amount', value: '5000' },
         ]),
-        findFirst: jest.fn().mockResolvedValue({ key: 'commission_rate', value: '10' }),
-        findUnique: jest.fn().mockResolvedValue({ key: 'min_payout_amount', value: '5000' }),
+        findFirst: jest
+          .fn()
+          .mockResolvedValue({ key: 'commission_rate', value: '10' }),
+        findUnique: jest
+          .fn()
+          .mockResolvedValue({ key: 'min_payout_amount', value: '5000' }),
       },
       payment: {
-        findMany: jest.fn().mockResolvedValue([
-          { amount: BigInt(50000), currency: 'XAF', status: 'SUCCESS' },
-        ]),
+        findMany: jest
+          .fn()
+          .mockResolvedValue([
+            { amount: BigInt(50000), currency: 'XAF', status: 'SUCCESS' },
+          ]),
         findFirst: jest.fn().mockResolvedValue(null),
       },
       payout: {
@@ -276,7 +292,10 @@ describe('MentorAura Platform (e2e)', () => {
   });
 
   const signToken = (userId: string, email: string, role: string) => {
-    const secret = configService.get<string>('jwt.secret') || process.env.JWT_SECRET || 'secret';
+    const secret =
+      configService.get<string>('jwt.secret') ||
+      process.env.JWT_SECRET ||
+      'secret';
     return jwtService.sign({ sub: userId, email, role }, { secret });
   };
 
@@ -287,7 +306,9 @@ describe('MentorAura Platform (e2e)', () => {
     });
 
     it('GET /api/v1/health should return healthy status without authentication', async () => {
-      const res = await request(app.getHttpServer()).get('/api/v1/health').expect(200);
+      const res = await request(app.getHttpServer())
+        .get('/api/v1/health')
+        .expect(200);
       expect(res.body.status).toBe('ok');
     });
   });
@@ -317,13 +338,19 @@ describe('MentorAura Platform (e2e)', () => {
     });
 
     it('GET /api/v1/notifications should reject unauthenticated requests with 401', async () => {
-      await request(app.getHttpServer()).get('/api/v1/notifications').expect(401);
+      await request(app.getHttpServer())
+        .get('/api/v1/notifications')
+        .expect(401);
     });
   });
 
   describe('3. Mentor Payout Balance & Request Endpoints', () => {
     it('GET /api/v1/payouts/balance should allow mentor (even if DB role column is MENTEE but isMentor=true)', async () => {
-      const mentorToken = signToken(MENTOR_USER_ID, 'mentor@mentoraura.test', 'MENTOR');
+      const mentorToken = signToken(
+        MENTOR_USER_ID,
+        'mentor@mentoraura.test',
+        'MENTOR',
+      );
       const res = await request(app.getHttpServer())
         .get('/api/v1/payouts/balance')
         .set('Authorization', `Bearer ${mentorToken}`)
@@ -338,7 +365,11 @@ describe('MentorAura Platform (e2e)', () => {
     });
 
     it('POST /api/v1/payouts/request should allow mentor to request a valid payout', async () => {
-      const mentorToken = signToken(MENTOR_USER_ID, 'mentor@mentoraura.test', 'MENTOR');
+      const mentorToken = signToken(
+        MENTOR_USER_ID,
+        'mentor@mentoraura.test',
+        'MENTOR',
+      );
       const res = await request(app.getHttpServer())
         .post('/api/v1/payouts/request')
         .set('Authorization', `Bearer ${mentorToken}`)
@@ -354,7 +385,11 @@ describe('MentorAura Platform (e2e)', () => {
     });
 
     it('GET /api/v1/payouts/balance should forbid a mentee with 403', async () => {
-      const menteeToken = signToken(MENTEE_USER_ID, 'mentee@mentoraura.test', 'MENTEE');
+      const menteeToken = signToken(
+        MENTEE_USER_ID,
+        'mentee@mentoraura.test',
+        'MENTEE',
+      );
       await request(app.getHttpServer())
         .get('/api/v1/payouts/balance')
         .set('Authorization', `Bearer ${menteeToken}`)
@@ -364,7 +399,11 @@ describe('MentorAura Platform (e2e)', () => {
 
   describe('4. In-App Notifications Flow', () => {
     it('GET /api/v1/notifications and PATCH /api/v1/notifications/read-all should work for authenticated user', async () => {
-      const menteeToken = signToken(MENTEE_USER_ID, 'mentee@mentoraura.test', 'MENTEE');
+      const menteeToken = signToken(
+        MENTEE_USER_ID,
+        'mentee@mentoraura.test',
+        'MENTEE',
+      );
 
       const listRes = await request(app.getHttpServer())
         .get('/api/v1/notifications')
@@ -385,7 +424,11 @@ describe('MentorAura Platform (e2e)', () => {
 
   describe('5. Disputes & Content Moderation Filing (ValidationPipe Whitelist)', () => {
     it('POST /api/v1/disputes should accept valid dispute payload with class-validator decorators', async () => {
-      const menteeToken = signToken(MENTEE_USER_ID, 'mentee@mentoraura.test', 'MENTEE');
+      const menteeToken = signToken(
+        MENTEE_USER_ID,
+        'mentee@mentoraura.test',
+        'MENTEE',
+      );
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/disputes')
@@ -403,7 +446,11 @@ describe('MentorAura Platform (e2e)', () => {
     });
 
     it('POST /api/v1/moderation/reports should accept valid content report payload', async () => {
-      const menteeToken = signToken(MENTEE_USER_ID, 'mentee@mentoraura.test', 'MENTEE');
+      const menteeToken = signToken(
+        MENTEE_USER_ID,
+        'mentee@mentoraura.test',
+        'MENTEE',
+      );
 
       const res = await request(app.getHttpServer())
         .post('/api/v1/moderation/reports')
@@ -423,7 +470,11 @@ describe('MentorAura Platform (e2e)', () => {
 
   describe('6. Security Guards: Paid Mentorship Activation & Admin Privilege Escalation', () => {
     it('PATCH /api/v1/mentorships/:id/activate should block unpaid activation of paid plans with 400', async () => {
-      const menteeToken = signToken(MENTEE_USER_ID, 'mentee@mentoraura.test', 'MENTEE');
+      const menteeToken = signToken(
+        MENTEE_USER_ID,
+        'mentee@mentoraura.test',
+        'MENTEE',
+      );
 
       await request(app.getHttpServer())
         .patch(`/api/v1/mentorships/${MENTORSHIP_ID}/activate`)
@@ -433,7 +484,11 @@ describe('MentorAura Platform (e2e)', () => {
     });
 
     it('PATCH /api/v1/admin/users/:id/active should forbid regular ADMIN from suspending SUPER_ADMIN', async () => {
-      const adminToken = signToken(ADMIN_USER_ID, 'admin@mentoraura.test', 'ADMIN');
+      const adminToken = signToken(
+        ADMIN_USER_ID,
+        'admin@mentoraura.test',
+        'ADMIN',
+      );
 
       await request(app.getHttpServer())
         .patch(`/api/v1/admin/users/${SUPER_ADMIN_USER_ID}/active`)

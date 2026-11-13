@@ -108,9 +108,17 @@ export class AuthController {
   @Public()
   @Post('admin/accept-invite')
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Accept administrative invitation and set password' })
-  @ApiResponse({ status: 200, description: 'Admin account activated successfully' })
-  @ApiResponse({ status: 401, description: 'Invalid or expired invitation token' })
+  @ApiOperation({
+    summary: 'Accept administrative invitation and set password',
+  })
+  @ApiResponse({
+    status: 200,
+    description: 'Admin account activated successfully',
+  })
+  @ApiResponse({
+    status: 401,
+    description: 'Invalid or expired invitation token',
+  })
   async acceptAdminInvite(
     @Body() dto: AcceptAdminInviteDto,
     @Res() res: Response,

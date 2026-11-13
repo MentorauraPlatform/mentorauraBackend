@@ -24,7 +24,12 @@ export class AdminUsersService {
     private readonly mailService: MailService,
   ) {}
 
-  async getUsers(query: { role?: string; q?: string; page?: number; limit?: number }) {
+  async getUsers(query: {
+    role?: string;
+    q?: string;
+    page?: number;
+    limit?: number;
+  }) {
     const page = Math.max(Number(query.page) || 1, 1);
     const limit = Math.max(Number(query.limit) || 10, 1);
     const skip = (page - 1) * limit;
@@ -54,7 +59,13 @@ export class AdminUsersService {
           isEmailVerified: true,
           createdAt: true,
           menteeProfile: { select: { fullName: true, avatarUrl: true } },
-          mentorProfile: { select: { fullName: true, isVerified: true, onboardingStatus: true } },
+          mentorProfile: {
+            select: {
+              fullName: true,
+              isVerified: true,
+              onboardingStatus: true,
+            },
+          },
         },
       }),
       this.prisma.user.count({ where }),
@@ -73,15 +84,22 @@ export class AdminUsersService {
     });
 
     if (existing) {
-      throw new ConflictException(`User with email '${cleanEmail}' already exists`);
+      throw new ConflictException(
+        `User with email '${cleanEmail}' already exists`,
+      );
     }
 
-    const targetRole = dto.role === 'SUPER_ADMIN' ? UserRole.SUPER_ADMIN : UserRole.ADMIN;
-    const rawPassword = dto.password || crypto.randomBytes(16).toString('hex') + 'A1!';
+    const targetRole =
+      dto.role === 'SUPER_ADMIN' ? UserRole.SUPER_ADMIN : UserRole.ADMIN;
+    const rawPassword =
+      dto.password || crypto.randomBytes(16).toString('hex') + 'A1!';
     const passwordHash = await bcrypt.hash(rawPassword, 12);
 
     const rawInviteToken = crypto.randomBytes(32).toString('hex');
-    const hashedInviteToken = crypto.createHash('sha256').update(rawInviteToken).digest('hex');
+    const hashedInviteToken = crypto
+      .createHash('sha256')
+      .update(rawInviteToken)
+      .digest('hex');
     const invitationExpires = new Date(Date.now() + 48 * 60 * 60 * 1000); // 48 hours
 
     const newAdmin = await this.prisma.user.create({
@@ -95,7 +113,11 @@ export class AdminUsersService {
         invitationExpires,
         menteeProfile: {
           create: {
-            fullName: dto.fullName || (targetRole === UserRole.SUPER_ADMIN ? 'Super Admin' : 'Admin User'),
+            fullName:
+              dto.fullName ||
+              (targetRole === UserRole.SUPER_ADMIN
+                ? 'Super Admin'
+                : 'Admin User'),
           },
         },
       },
@@ -116,17 +138,29 @@ export class AdminUsersService {
       },
     });
 
-    await this.mailService.sendAdminInvitationEmail(cleanEmail, targetRole, rawInviteToken);
+    await this.mailService.sendAdminInvitationEmail(
+      cleanEmail,
+      targetRole,
+      rawInviteToken,
+    );
 
     return { data: newAdmin, inviteToken: rawInviteToken };
   }
 
-  async toggleUserActive(callerId: string, targetUserId: string, isActive: boolean) {
+  async toggleUserActive(
+    callerId: string,
+    targetUserId: string,
+    isActive: boolean,
+  ) {
     if (callerId === targetUserId) {
-      throw new ForbiddenException('Admins cannot change their own active status');
+      throw new ForbiddenException(
+        'Admins cannot change their own active status',
+      );
     }
 
-    const target = await this.prisma.user.findUnique({ where: { id: targetUserId } });
+    const target = await this.prisma.user.findUnique({
+      where: { id: targetUserId },
+    });
     if (!target) {
       throw new NotFoundException(`User '${targetUserId}' not found`);
     }
@@ -136,7 +170,9 @@ export class AdminUsersService {
         select: { role: true },
       });
       if (caller?.role !== UserRole.SUPER_ADMIN) {
-        throw new ForbiddenException('Only a SUPER_ADMIN can modify another SUPER_ADMIN account');
+        throw new ForbiddenException(
+          'Only a SUPER_ADMIN can modify another SUPER_ADMIN account',
+        );
       }
     }
 

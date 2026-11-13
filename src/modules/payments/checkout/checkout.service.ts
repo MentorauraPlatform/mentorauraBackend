@@ -43,7 +43,10 @@ export class CheckoutService {
     if (cleaned.startsWith('237') && cleaned.length === 12) {
       return `+${cleaned}`;
     }
-    if (cleaned.length === 9 && (cleaned.startsWith('6') || cleaned.startsWith('2'))) {
+    if (
+      cleaned.length === 9 &&
+      (cleaned.startsWith('6') || cleaned.startsWith('2'))
+    ) {
       return `+237${cleaned}`;
     }
     return `+${cleaned}`;
@@ -55,7 +58,10 @@ export class CheckoutService {
   private formatPayment(payment: any) {
     return {
       ...payment,
-      amount: typeof payment.amount === 'bigint' ? Number(payment.amount) : payment.amount,
+      amount:
+        typeof payment.amount === 'bigint'
+          ? Number(payment.amount)
+          : payment.amount,
     };
   }
 
@@ -102,7 +108,9 @@ export class CheckoutService {
     }
 
     if (!mentorship.plan) {
-      throw new BadRequestException('Associated mentorship plan was not found.');
+      throw new BadRequestException(
+        'Associated mentorship plan was not found.',
+      );
     }
 
     // 3. Extract price and currency
@@ -249,7 +257,10 @@ export class CheckoutService {
       );
     } catch (err: unknown) {
       const error = err as Error;
-      this.logger.error(`Payment initiation failed: ${error.message}`, error.stack);
+      this.logger.error(
+        `Payment initiation failed: ${error.message}`,
+        error.stack,
+      );
       // Mark payment as FAILED
       await this.prisma.payment.update({
         where: { id: payment.id },

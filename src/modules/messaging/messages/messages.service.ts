@@ -211,7 +211,9 @@ export class MessagesService {
     const hasAttachments = attachmentIds && attachmentIds.length > 0;
 
     if (!trimmed && !hasAttachments) {
-      throw new BadRequestException('Message must contain text content or an attachment');
+      throw new BadRequestException(
+        'Message must contain text content or an attachment',
+      );
     }
 
     const { recipientId, recipient } = await this.validateMembership(
@@ -219,7 +221,8 @@ export class MessagesService {
       conversationId,
     );
 
-    const messageContent = trimmed || (hasAttachments ? 'Sent an attachment' : '');
+    const messageContent =
+      trimmed || (hasAttachments ? 'Sent an attachment' : '');
 
     let created: any;
 

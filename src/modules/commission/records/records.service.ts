@@ -62,20 +62,29 @@ export class RecordsService {
 
     const successfulPayments = await this.prisma.payment.findMany({
       where,
-      select: { amount: true, currency: true, mentorship: { select: { mentorId: true } } },
+      select: {
+        amount: true,
+        currency: true,
+        mentorship: { select: { mentorId: true } },
+      },
     });
 
     let totalGmv = BigInt(0);
     let totalPlatformRevenue = BigInt(0);
     let totalMentorVolume = BigInt(0);
 
-    const sampleSplit = await this.calculationService.calculateSplit(BigInt(10000));
-    const rateBasisPoints = BigInt(Math.round(sampleSplit.commissionRate * 100));
+    const sampleSplit = await this.calculationService.calculateSplit(
+      BigInt(10000),
+    );
+    const rateBasisPoints = BigInt(
+      Math.round(sampleSplit.commissionRate * 100),
+    );
 
     for (const p of successfulPayments) {
       totalGmv += p.amount;
       const platformFee = (p.amount * rateBasisPoints) / BigInt(10000);
-      const netMentorAmount = p.amount > platformFee ? p.amount - platformFee : BigInt(0);
+      const netMentorAmount =
+        p.amount > platformFee ? p.amount - platformFee : BigInt(0);
       totalPlatformRevenue += platformFee;
       totalMentorVolume += netMentorAmount;
     }

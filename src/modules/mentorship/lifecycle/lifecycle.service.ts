@@ -45,7 +45,9 @@ export class LifecycleService {
       where: whereCondition,
       include: {
         mentee: { select: { id: true, email: true } },
-        mentor: { select: { id: true, fullName: true, title: true, company: true } },
+        mentor: {
+          select: { id: true, fullName: true, title: true, company: true },
+        },
         plan: {
           select: { id: true, title: true, priceAmount: true, currency: true },
         },
@@ -340,8 +342,11 @@ export class LifecycleService {
       .filter(Boolean);
 
     // Keep only completedGoals that still exist in cleanedGoals
-    const currentCompleted = mentorship.mentee.menteeProfile.completedGoals || [];
-    const updatedCompleted = currentCompleted.filter((g) => cleanedGoals.includes(g));
+    const currentCompleted =
+      mentorship.mentee.menteeProfile.completedGoals || [];
+    const updatedCompleted = currentCompleted.filter((g) =>
+      cleanedGoals.includes(g),
+    );
 
     const updatedProfile = await this.prisma.menteeProfile.update({
       where: { id: mentorship.mentee.menteeProfile.id },

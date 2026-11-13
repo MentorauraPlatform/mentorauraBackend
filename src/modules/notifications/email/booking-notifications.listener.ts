@@ -24,19 +24,36 @@ export class BookingNotificationsListener {
     scheduledAt: Date;
     meetingLink: string;
   }) {
-    this.logger.log(`Handling booking.confirmed for booking ${payload.bookingId}`);
+    this.logger.log(
+      `Handling booking.confirmed for booking ${payload.bookingId}`,
+    );
 
     const booking = await this.prisma.booking.findUnique({
       where: { id: payload.bookingId },
       include: {
-        mentee: { select: { id: true, email: true, menteeProfile: { select: { fullName: true } } } },
-        mentor: { select: { id: true, userId: true, fullName: true, user: { select: { email: true } } } },
+        mentee: {
+          select: {
+            id: true,
+            email: true,
+            menteeProfile: { select: { fullName: true } },
+          },
+        },
+        mentor: {
+          select: {
+            id: true,
+            userId: true,
+            fullName: true,
+            user: { select: { email: true } },
+          },
+        },
       },
     });
 
     if (!booking) return;
 
-    const menteeName = booking.mentee.menteeProfile?.fullName || booking.mentee.email.split('@')[0];
+    const menteeName =
+      booking.mentee.menteeProfile?.fullName ||
+      booking.mentee.email.split('@')[0];
     const mentorName = booking.mentor.fullName;
 
     // 1. In-App Notifications
@@ -46,14 +63,20 @@ export class BookingNotificationsListener {
         type: NotificationType.BOOKING_CONFIRMED,
         title: 'Session Booking Confirmed',
         message: `Your session with ${mentorName} is confirmed for ${new Date(payload.scheduledAt).toUTCString()}.`,
-        data: { bookingId: payload.bookingId, meetingLink: payload.meetingLink },
+        data: {
+          bookingId: payload.bookingId,
+          meetingLink: payload.meetingLink,
+        },
       }),
       this.inAppService.create({
         userId: booking.mentor.userId,
         type: NotificationType.BOOKING_CONFIRMED,
         title: 'New Session Booked',
         message: `${menteeName} booked a session with you for ${new Date(payload.scheduledAt).toUTCString()}.`,
-        data: { bookingId: payload.bookingId, meetingLink: payload.meetingLink },
+        data: {
+          bookingId: payload.bookingId,
+          meetingLink: payload.meetingLink,
+        },
       }),
     ]);
 
@@ -89,19 +112,36 @@ export class BookingNotificationsListener {
     isLateCancellation: boolean;
     reason: string;
   }) {
-    this.logger.log(`Handling booking.cancelled for booking ${payload.bookingId}`);
+    this.logger.log(
+      `Handling booking.cancelled for booking ${payload.bookingId}`,
+    );
 
     const booking = await this.prisma.booking.findUnique({
       where: { id: payload.bookingId },
       include: {
-        mentee: { select: { id: true, email: true, menteeProfile: { select: { fullName: true } } } },
-        mentor: { select: { id: true, userId: true, fullName: true, user: { select: { email: true } } } },
+        mentee: {
+          select: {
+            id: true,
+            email: true,
+            menteeProfile: { select: { fullName: true } },
+          },
+        },
+        mentor: {
+          select: {
+            id: true,
+            userId: true,
+            fullName: true,
+            user: { select: { email: true } },
+          },
+        },
       },
     });
 
     if (!booking) return;
 
-    const menteeName = booking.mentee.menteeProfile?.fullName || booking.mentee.email.split('@')[0];
+    const menteeName =
+      booking.mentee.menteeProfile?.fullName ||
+      booking.mentee.email.split('@')[0];
     const mentorName = booking.mentor.fullName;
 
     // In-App Notifications
@@ -152,7 +192,9 @@ export class BookingNotificationsListener {
     menteeId: string;
     completedAt: Date;
   }) {
-    this.logger.log(`Handling booking.completed for booking ${payload.bookingId}`);
+    this.logger.log(
+      `Handling booking.completed for booking ${payload.bookingId}`,
+    );
 
     const booking = await this.prisma.booking.findUnique({
       where: { id: payload.bookingId },
@@ -186,7 +228,9 @@ export class BookingNotificationsListener {
     reportedBy: string;
     reason: string;
   }) {
-    this.logger.log(`Handling booking.no_show for booking ${payload.bookingId}`);
+    this.logger.log(
+      `Handling booking.no_show for booking ${payload.bookingId}`,
+    );
 
     const mentorProfile = await this.prisma.mentorProfile.findUnique({
       where: { id: payload.mentorId },

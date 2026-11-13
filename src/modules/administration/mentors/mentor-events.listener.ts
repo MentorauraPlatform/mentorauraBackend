@@ -18,7 +18,9 @@ export class MentorEventsListener {
     userId: string;
     adminId: string;
   }) {
-    this.logger.log(`Handling mentor.application.approved for profile ${event.mentorProfileId}`);
+    this.logger.log(
+      `Handling mentor.application.approved for profile ${event.mentorProfileId}`,
+    );
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: event.userId },
@@ -26,7 +28,10 @@ export class MentorEventsListener {
       });
       if (user && user.email) {
         const fullName = user.mentorProfile?.fullName || 'Mentor';
-        await this.mailService.sendMentorApplicationApprovedEmail(user.email, fullName);
+        await this.mailService.sendMentorApplicationApprovedEmail(
+          user.email,
+          fullName,
+        );
       }
     } catch (err) {
       this.logger.error('Failed to send approval notification email', err);
@@ -40,7 +45,9 @@ export class MentorEventsListener {
     reason: string;
     adminId: string;
   }) {
-    this.logger.log(`Handling mentor.application.rejected for profile ${event.mentorProfileId}`);
+    this.logger.log(
+      `Handling mentor.application.rejected for profile ${event.mentorProfileId}`,
+    );
     try {
       const user = await this.prisma.user.findUnique({
         where: { id: event.userId },
@@ -48,7 +55,11 @@ export class MentorEventsListener {
       });
       if (user && user.email) {
         const fullName = user.mentorProfile?.fullName || 'Applicant';
-        await this.mailService.sendMentorApplicationRejectedEmail(user.email, fullName, event.reason);
+        await this.mailService.sendMentorApplicationRejectedEmail(
+          user.email,
+          fullName,
+          event.reason,
+        );
       }
     } catch (err) {
       this.logger.error('Failed to send rejection notification email', err);

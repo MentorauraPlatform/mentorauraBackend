@@ -1,4 +1,13 @@
-import { IsUUID, IsISO8601, IsOptional, IsInt, Min, Max, IsString, IsIn } from 'class-validator';
+import {
+  IsUUID,
+  IsISO8601,
+  IsOptional,
+  IsInt,
+  Min,
+  Max,
+  IsString,
+  IsIn,
+} from 'class-validator';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 
 export class CreateBookingDto {
@@ -10,7 +19,10 @@ export class CreateBookingDto {
   @IsISO8601()
   scheduledAt!: string;
 
-  @ApiPropertyOptional({ description: 'Session duration in minutes', default: 60 })
+  @ApiPropertyOptional({
+    description: 'Session duration in minutes',
+    default: 60,
+  })
   @IsOptional()
   @IsInt()
   @Min(15)
@@ -26,7 +38,10 @@ export class CancelBookingDto {
 }
 
 export class NoShowBookingDto {
-  @ApiProperty({ description: 'Role reporting the no-show', enum: ['MENTOR', 'MENTEE'] })
+  @ApiProperty({
+    description: 'Role reporting the no-show',
+    enum: ['MENTOR', 'MENTEE'],
+  })
   @IsIn(['MENTOR', 'MENTEE'])
   reportedBy!: 'MENTOR' | 'MENTEE';
 

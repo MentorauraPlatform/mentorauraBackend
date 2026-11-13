@@ -119,7 +119,9 @@ export class ZopayAdapter implements IPaymentProvider {
       this.configService.get<string>('FRONTEND_URL') ||
       'http://localhost:3000';
 
-    const simulationMode = this.configService.get<string>('ZOPAY_SIMULATION_MODE');
+    const simulationMode = this.configService.get<string>(
+      'ZOPAY_SIMULATION_MODE',
+    );
     const isMock = simulationMode === 'true' || simulationMode === '1';
 
     this.isConfigured = Boolean(this.apiKey) && !isMock;
@@ -135,7 +137,9 @@ export class ZopayAdapter implements IPaymentProvider {
         );
       }
     } else {
-      this.logger.log(`ZoPay Gateway configured with API key (${this.apiKey.slice(0, 8)}...). Live calls enabled.`);
+      this.logger.log(
+        `ZoPay Gateway configured with API key (${this.apiKey.slice(0, 8)}...). Live calls enabled.`,
+      );
     }
   }
 
@@ -153,7 +157,7 @@ export class ZopayAdapter implements IPaymentProvider {
     const nonce = crypto.randomUUID();
 
     const headers: Record<string, string> = {
-      'Authorization': `Bearer ${this.apiKey}`,
+      Authorization: `Bearer ${this.apiKey}`,
       'x-zo-key': this.apiKey,
       'X-Merchant-ID': this.merchantId,
       'x-zo-timestamp': timestamp,
@@ -206,7 +210,11 @@ export class ZopayAdapter implements IPaymentProvider {
       };
     }
 
-    const headers = this.generateHeaders('POST', path, params as unknown as Record<string, unknown>);
+    const headers = this.generateHeaders(
+      'POST',
+      path,
+      params as unknown as Record<string, unknown>,
+    );
 
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: 'POST',
@@ -248,7 +256,11 @@ export class ZopayAdapter implements IPaymentProvider {
       };
     }
 
-    const headers = this.generateHeaders('POST', path, params as unknown as Record<string, unknown>);
+    const headers = this.generateHeaders(
+      'POST',
+      path,
+      params as unknown as Record<string, unknown>,
+    );
 
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: 'POST',
@@ -294,7 +306,11 @@ export class ZopayAdapter implements IPaymentProvider {
       };
     }
 
-    const headers = this.generateHeaders('POST', path, params as unknown as Record<string, unknown>);
+    const headers = this.generateHeaders(
+      'POST',
+      path,
+      params as unknown as Record<string, unknown>,
+    );
 
     const response = await fetch(`${this.baseUrl}${path}`, {
       method: 'POST',
@@ -394,16 +410,16 @@ export class ZopayAdapter implements IPaymentProvider {
         const now = Date.now();
         const age = Math.abs(now - parsedTime);
         if (age > 5 * 60 * 1000) {
-          this.logger.warn(`Webhook request rejected: timestamp age ${age}ms exceeds 5 minutes`);
+          this.logger.warn(
+            `Webhook request rejected: timestamp age ${age}ms exceeds 5 minutes`,
+          );
           return false;
         }
       }
     }
 
     const payloadString =
-      typeof rawPayload === 'string'
-        ? rawPayload
-        : rawPayload.toString('utf8');
+      typeof rawPayload === 'string' ? rawPayload : rawPayload.toString('utf8');
 
     // Formula per ZoPay Webhook Security docs:
     // If timestamp is sent in header, stringToSign = `${timestamp}.${payload}`
@@ -492,8 +508,8 @@ export class ZopayAdapter implements IPaymentProvider {
         txn.status === 'SUCCESS'
           ? 'success'
           : txn.status === 'FAILED' || txn.status === 'CANCELLED'
-          ? 'failed'
-          : 'pending',
+            ? 'failed'
+            : 'pending',
       amount: parseFloat(txn.amount),
       currency: txn.currency,
       paidAt: txn.completedAt ? new Date(txn.completedAt) : undefined,

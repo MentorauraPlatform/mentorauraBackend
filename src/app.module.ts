@@ -211,5 +211,3 @@ import { PrismaModule } from './common/prisma/prisma.module';
   ],
 })
 export class AppModule {}
-
-

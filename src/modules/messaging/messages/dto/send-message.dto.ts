@@ -1,4 +1,10 @@
-import { IsOptional, IsString, MaxLength, IsArray, IsUUID } from 'class-validator';
+import {
+  IsOptional,
+  IsString,
+  MaxLength,
+  IsArray,
+  IsUUID,
+} from 'class-validator';
 
 export class SendMessageDto {
   @IsOptional()

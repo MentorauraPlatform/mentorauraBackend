@@ -1,26 +1,38 @@
-import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  BadRequestException,
+  NotFoundException,
+} from '@nestjs/common';
 import { PrismaService } from '../../../common/prisma/prisma.service';
 
-export const DEFAULT_PLATFORM_SETTINGS: Record<string, { value: string; description: string }> = {
+export const DEFAULT_PLATFORM_SETTINGS: Record<
+  string,
+  { value: string; description: string }
+> = {
   global_commission_rate: {
     value: '15',
-    description: 'Platform commission percentage retained from each completed session/mentorship (0-100%)',
+    description:
+      'Platform commission percentage retained from each completed session/mentorship (0-100%)',
   },
   min_payout_amount: {
     value: '10000',
-    description: 'Minimum balance in XAF required for a mentor to submit a withdrawal request',
+    description:
+      'Minimum balance in XAF required for a mentor to submit a withdrawal request',
   },
   auto_cancel_hours: {
     value: '24',
-    description: 'Hours before scheduled session start time after which cancellations incur penalty or are restricted',
+    description:
+      'Hours before scheduled session start time after which cancellations incur penalty or are restricted',
   },
   dispute_grace_period_days: {
     value: '7',
-    description: 'Window in days after a session finishes during which a mentee can raise a dispute',
+    description:
+      'Window in days after a session finishes during which a mentee can raise a dispute',
   },
   support_email: {
     value: 'support@mentoraura.com',
-    description: 'Primary platform customer support and dispute escalation email',
+    description:
+      'Primary platform customer support and dispute escalation email',
   },
   terms_url: {
     value: 'https://mentoraura.com/terms',
@@ -38,7 +50,10 @@ export class ConfigurationService {
 
   async getSettings() {
     const records = await this.prisma.platformSetting.findMany();
-    const map: Record<string, { value: string; description: string; updatedAt: Date }> = {};
+    const map: Record<
+      string,
+      { value: string; description: string; updatedAt: Date }
+    > = {};
 
     // Seed defaults in map
     for (const [k, v] of Object.entries(DEFAULT_PLATFORM_SETTINGS)) {
@@ -53,7 +68,8 @@ export class ConfigurationService {
     for (const r of records) {
       map[r.key] = {
         value: r.value,
-        description: r.description || DEFAULT_PLATFORM_SETTINGS[r.key]?.description || '',
+        description:
+          r.description || DEFAULT_PLATFORM_SETTINGS[r.key]?.description || '',
         updatedAt: r.updatedAt,
       };
     }
@@ -70,9 +86,11 @@ export class ConfigurationService {
 
     const settingsToSave = { ...settings };
     if (settingsToSave.global_commission_rate !== undefined) {
-      settingsToSave.platform_commission_percent = settingsToSave.global_commission_rate;
+      settingsToSave.platform_commission_percent =
+        settingsToSave.global_commission_rate;
     } else if (settingsToSave.platform_commission_percent !== undefined) {
-      settingsToSave.global_commission_rate = settingsToSave.platform_commission_percent;
+      settingsToSave.global_commission_rate =
+        settingsToSave.platform_commission_percent;
     }
 
     await this.prisma.$transaction(async (tx) => {
@@ -80,7 +98,9 @@ export class ConfigurationService {
         if (value === undefined || value === null) continue;
 
         const stringVal = String(value).trim();
-        const desc = DEFAULT_PLATFORM_SETTINGS[key]?.description || 'Custom platform setting';
+        const desc =
+          DEFAULT_PLATFORM_SETTINGS[key]?.description ||
+          'Custom platform setting';
 
         const record = await tx.platformSetting.upsert({
           where: { key },
@@ -163,7 +183,9 @@ export class ConfigurationService {
     });
 
     if (existing) {
-      throw new BadRequestException(`Category with name or slug '${name}' already exists`);
+      throw new BadRequestException(
+        `Category with name or slug '${name}' already exists`,
+      );
     }
 
     const category = await this.prisma.category.create({
@@ -179,7 +201,11 @@ export class ConfigurationService {
         adminId,
         action: 'CREATE_CATEGORY',
         targetId: category.id,
-        details: { targetType: 'CATEGORY', name: category.name, slug: category.slug },
+        details: {
+          targetType: 'CATEGORY',
+          name: category.name,
+          slug: category.slug,
+        },
         ipAddress: ipAddress || '127.0.0.1',
       },
     });
@@ -216,7 +242,9 @@ export class ConfigurationService {
       });
 
       if (collision) {
-        throw new BadRequestException(`Another category with name '${name}' already exists`);
+        throw new BadRequestException(
+          `Another category with name '${name}' already exists`,
+        );
       }
 
       data.name = name;
@@ -237,7 +265,11 @@ export class ConfigurationService {
         adminId,
         action: 'UPDATE_CATEGORY',
         targetId: id,
-        details: { targetType: 'CATEGORY', previous: { name: category.name }, updated: data },
+        details: {
+          targetType: 'CATEGORY',
+          previous: { name: category.name },
+          updated: data,
+        },
         ipAddress: ipAddress || '127.0.0.1',
       },
     });

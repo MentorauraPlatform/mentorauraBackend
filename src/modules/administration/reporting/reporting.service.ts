@@ -131,7 +131,8 @@ export class ReportingService {
       }),
     );
 
-    const byProviderRecord: Record<string, { count: number; volume: number }> = {};
+    const byProviderRecord: Record<string, { count: number; volume: number }> =
+      {};
     for (const [provider, data] of providerMap.entries()) {
       byProviderRecord[provider] = { count: data.count, volume: data.amount };
     }

@@ -5,5 +5,7 @@ export default registerAs('jwt', () => ({
   expiresIn: process.env.JWT_EXPIRES_IN ?? process.env.JWT_EXPIRY ?? '15m',
   refreshSecret: process.env.JWT_REFRESH_SECRET ?? 'super-refresh-secret-key',
   refreshExpiresIn:
-    process.env.JWT_REFRESH_EXPIRES_IN ?? process.env.JWT_REFRESH_EXPIRY ?? '7d',
+    process.env.JWT_REFRESH_EXPIRES_IN ??
+    process.env.JWT_REFRESH_EXPIRY ??
+    '7d',
 }));

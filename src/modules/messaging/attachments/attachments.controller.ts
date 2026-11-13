@@ -66,7 +66,10 @@ export class AttachmentsController {
   serveFile(@Param('filename') filename: string, @Res() res: Response) {
     const filePath = this.attachmentsService.getFilePath(filename);
     res.setHeader('X-Content-Type-Options', 'nosniff');
-    res.setHeader('Content-Security-Policy', "default-src 'none'; style-src 'unsafe-inline'; sandbox");
+    res.setHeader(
+      'Content-Security-Policy',
+      "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    );
     res.sendFile(filePath);
   }
 }

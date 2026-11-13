@@ -294,10 +294,7 @@ export class ConversationsService {
     // Try finding by mentorshipId first
     let conversation = await this.prisma.conversation.findFirst({
       where: {
-        OR: [
-          { mentorshipId },
-          { participant1Id, participant2Id },
-        ],
+        OR: [{ mentorshipId }, { participant1Id, participant2Id }],
       },
     });
 

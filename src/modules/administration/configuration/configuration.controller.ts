@@ -63,7 +63,10 @@ export class ConfigurationController {
 
   @Put('admin/configuration')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Batch update platform settings (commission, thresholds, policies)' })
+  @ApiOperation({
+    summary:
+      'Batch update platform settings (commission, thresholds, policies)',
+  })
   async updateSettings(
     @CurrentUser() admin: CurrentUserPayload,
     @Body() dto: UpdateSettingsBodyDto,
@@ -106,13 +109,20 @@ export class ConfigurationController {
     @Req() req: any,
   ) {
     const ip = req.ip || req.headers['x-forwarded-for'];
-    const data = await this.configService.updateCategory(admin.userId, id, dto, ip);
+    const data = await this.configService.updateCategory(
+      admin.userId,
+      id,
+      dto,
+      ip,
+    );
     return { data, message: 'Category updated successfully' };
   }
 
   @Delete('admin/configuration/categories/:id')
   @Roles(Role.ADMIN, Role.SUPER_ADMIN)
-  @ApiOperation({ summary: 'Delete a category (only if no mentors are assigned)' })
+  @ApiOperation({
+    summary: 'Delete a category (only if no mentors are assigned)',
+  })
   async deleteCategory(
     @CurrentUser() admin: CurrentUserPayload,
     @Param('id', ParseUUIDPipe) id: string,

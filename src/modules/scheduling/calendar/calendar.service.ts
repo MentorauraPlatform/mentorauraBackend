@@ -62,7 +62,9 @@ export class CalendarService {
 
     if (!response.ok) {
       const errorText = await response.text();
-      this.logger.error(`Failed to refresh Google access token: ${response.status} ${errorText}`);
+      this.logger.error(
+        `Failed to refresh Google access token: ${response.status} ${errorText}`,
+      );
       throw new Error(`Google OAuth token refresh failed: ${response.status}`);
     }
 
@@ -85,7 +87,9 @@ export class CalendarService {
       const accessToken = await this.getAccessToken();
 
       const startTime = new Date(params.startTime);
-      const endTime = new Date(startTime.getTime() + params.durationMinutes * 60 * 1000);
+      const endTime = new Date(
+        startTime.getTime() + params.durationMinutes * 60 * 1000,
+      );
 
       const attendees: { email: string; displayName?: string }[] = [];
       if (params.mentorEmail && params.mentorEmail.includes('@')) {
@@ -140,8 +144,12 @@ export class CalendarService {
 
       if (!eventRes.ok) {
         const errText = await eventRes.text();
-        this.logger.error(`Google Calendar create event failed: ${eventRes.status} ${errText}`);
-        throw new Error(`Google Calendar API returned status ${eventRes.status}`);
+        this.logger.error(
+          `Google Calendar create event failed: ${eventRes.status} ${errText}`,
+        );
+        throw new Error(
+          `Google Calendar API returned status ${eventRes.status}`,
+        );
       }
 
       const eventData = await eventRes.json();
@@ -150,11 +158,14 @@ export class CalendarService {
       const meetLink =
         eventData.hangoutLink ||
         eventData.conferenceData?.entryPoints?.find(
-          (p: { entryPointType?: string; uri?: string }) => p.entryPointType === 'video',
+          (p: { entryPointType?: string; uri?: string }) =>
+            p.entryPointType === 'video',
         )?.uri;
 
       if (meetLink) {
-        this.logger.log(`Created Google Meet event ${eventData.id} with link: ${meetLink}`);
+        this.logger.log(
+          `Created Google Meet event ${eventData.id} with link: ${meetLink}`,
+        );
         return {
           meetingLink: meetLink,
           calendarEventId: eventData.id,
@@ -162,10 +173,15 @@ export class CalendarService {
         };
       }
 
-      this.logger.warn('Google Calendar event created, but no hangoutLink returned; using fallback.');
+      this.logger.warn(
+        'Google Calendar event created, but no hangoutLink returned; using fallback.',
+      );
     } catch (err: unknown) {
       const error = err as Error;
-      this.logger.error(`Error generating Google Meet link: ${error.message}`, error.stack);
+      this.logger.error(
+        `Error generating Google Meet link: ${error.message}`,
+        error.stack,
+      );
     }
 
     // Safe fallback if Google Meet link could not be obtained

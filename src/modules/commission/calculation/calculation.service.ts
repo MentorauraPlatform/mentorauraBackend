@@ -21,14 +21,18 @@ export class CalculationService {
     mentorProfileId?: string,
     currency = 'XAF',
   ): Promise<CommissionCalculationResult> {
-    const gross = typeof grossAmount === 'number' ? BigInt(Math.round(grossAmount)) : grossAmount;
+    const gross =
+      typeof grossAmount === 'number'
+        ? BigInt(Math.round(grossAmount))
+        : grossAmount;
     const rule = await this.rulesService.getEffectiveRate(mentorProfileId);
 
     // Calculate platform fee using integer math for financial accuracy
     // platformFee = Math.round((gross * rate) / 100)
     const rateBasisPoints = BigInt(Math.round(rule.rate * 100));
     const platformFee = (gross * rateBasisPoints) / BigInt(10000);
-    const netMentorAmount = gross > platformFee ? gross - platformFee : BigInt(0);
+    const netMentorAmount =
+      gross > platformFee ? gross - platformFee : BigInt(0);
 
     return {
       grossAmount: gross,

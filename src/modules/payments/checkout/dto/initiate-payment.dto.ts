@@ -36,7 +36,8 @@ export class InitiatePaymentDto {
   provider!: PaymentMethodProvider;
 
   @ApiPropertyOptional({
-    description: 'Payer mobile money phone number (e.g. +2376XXXXXXXX or 6XXXXXXXX)',
+    description:
+      'Payer mobile money phone number (e.g. +2376XXXXXXXX or 6XXXXXXXX)',
     example: '+237671234567',
   })
   @IsOptional()
@@ -45,7 +46,8 @@ export class InitiatePaymentDto {
 
   @ApiPropertyOptional({
     description: 'Return URL after card or hosted checkout redirection',
-    example: 'https://mentoraura.com/mentee/dashboard/mentorships/123/checkout?status=success',
+    example:
+      'https://mentoraura.com/mentee/dashboard/mentorships/123/checkout?status=success',
   })
   @IsOptional()
   @IsString()
