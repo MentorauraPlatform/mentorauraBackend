@@ -104,4 +104,4 @@ jobs:
             echo "🧹 Pruning old dangling images..."
             docker image prune -f
 
-            echo "✅ Backend successfully deployed to production!"
+            echo "✅ Backend successfully  deployed to production!"
